@@ -10,6 +10,7 @@ struct SettingsView: View {
     @State private var remindAt = Date.now
     @State private var faceID = UserDefaults.standard.bool(forKey: "faceID")
     @State private var changingPIN = false
+    @State private var linking = false
     @State private var confirmSignOut = false
     @State private var deleting = false
     @State private var confirmHandle = ""
@@ -51,6 +52,15 @@ struct SettingsView: View {
                     Text("Change these any time in the Settings app; places and activity are written into each page, encrypted like everything else.")
                 }
 
+                Section {
+                    LinkedBrowsers(journal: journal).id(linking)
+                    Button("Link a browser") { linking = true }
+                } header: {
+                    Text("Browsers")
+                } footer: {
+                    Text("Read and write your journal at tekkoh-web.cronbon.com. A linked browser needs your username, your PIN and this phone, and can't change your PIN or delete the journal.")
+                }
+
                 Section("Privacy") {
                     Toggle("Lock with Face ID", isOn: $faceID)
                     Button("Change PIN") { changingPIN = true }
@@ -88,6 +98,7 @@ struct SettingsView: View {
             }
             .onChange(of: faceID) { _, v in model.lockEnabled = v }
             .sheet(isPresented: $changingPIN) { ChangePIN(journal: journal) }
+            .sheet(isPresented: $linking) { LinkBrowser(journal: journal) }
             .confirmationDialog("Sign out of this phone?", isPresented: $confirmSignOut, titleVisibility: .visible) {
                 Button("Sign out", role: .destructive) {
                     dismiss()

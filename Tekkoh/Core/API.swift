@@ -123,6 +123,32 @@ struct API {
     }
 
     func me() async throws -> [String: Any] { try await object("GET", "/v1/me") }
+
+    // MARK: Linked browsers
+
+    /// Puts the journal key, sealed to a browser, in the slot its QR code named.
+    func link(slot: String, box: Data) async throws {
+        _ = try await object("PUT", "/v1/pair/\(slot)", json: ["box": box.base64EncodedString()])
+    }
+
+    struct Browser: Identifiable {
+        let id: String
+        let label: String
+        let created: Date?
+        let lastUsed: Date?
+    }
+
+    func browsers() async throws -> [Browser] {
+        let o = try await object("GET", "/v1/sessions")
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        func date(_ v: Any?) -> Date? { (v as? String).flatMap { f.date(from: $0) ?? ISO8601DateFormatter().date(from: $0) } }
+        return (o["sessions"] as? [[String: Any]] ?? []).map {
+            Browser(id: $0["id"] as? String ?? "", label: $0["label"] as? String ?? "A browser", created: date($0["createdAt"]), lastUsed: date($0["lastUsed"]))
+        }
+    }
+
+    func unlink(browser id: String) async throws { _ = try await object("DELETE", "/v1/sessions/\(id)") }
     func deleteAccount() async throws { _ = try await object("DELETE", "/v1/me") }
 
     // MARK: Entries

@@ -35,3 +35,49 @@ enum Transport {
         return Box(body: ["eph": eph.publicKey.rawRepresentation.base64EncodedString(), "box": box.base64EncodedString()], key: key, purpose: purpose)
     }
 }
+
+/// Linking a browser: the phone seals the journal key to the one-time
+/// X25519 key the browser shows in its QR code. The box is the phone's
+/// one-time public key followed by AES-GCM, with the same key derivation as
+/// a transport box (purpose "pair"); web/js/crypto.js opens it.
+enum Linking {
+    struct Code {
+        let slot: String
+        let browserKey: Curve25519.KeyAgreement.PublicKey
+        let raw: Data
+    }
+
+    /// The QR code's text: `tekkoh-link:1:<slot>:<base64url public key>`.
+    static func parse(_ text: String) -> Code? {
+        let parts = text.split(separator: ":").map(String.init)
+        guard parts.count == 4, parts[0] == "tekkoh-link", parts[1] == "1",
+              parts[2].range(of: "^[A-Za-z0-9_-]{16,64}$", options: .regularExpression) != nil,
+              let raw = Data(base64URL: parts[3]), raw.count == 32,
+              let key = try? Curve25519.KeyAgreement.PublicKey(rawRepresentation: raw) else { return nil }
+        return Code(slot: parts[2], browserKey: key, raw: raw)
+    }
+
+    static func seal(handle: String, journal: SymmetricKey, to browser: Curve25519.KeyAgreement.PublicKey) throws -> Data {
+        let payload = try JSONSerialization.data(withJSONObject: ["handle": handle, "key": journal.data.base64EncodedString()])
+        let eph = Curve25519.KeyAgreement.PrivateKey()
+        let shared = try eph.sharedSecretFromKeyAgreement(with: browser)
+        let key = shared.hkdfDerivedSymmetricKey(using: SHA256.self, salt: eph.publicKey.rawRepresentation + browser.rawRepresentation,
+                                                 sharedInfo: Data("tekkoh/transport/v1/pair".utf8), outputByteCount: 32)
+        return eph.publicKey.rawRepresentation + (try AES.GCM.seal(payload, using: key, authenticating: Data("pair".utf8)).combined!)
+    }
+
+    /// Six digits the browser shows too, so you can see the phone found the
+    /// right page.
+    static func code(_ browserKey: Data) -> String {
+        let h = Array(SHA256.hash(data: browserKey))
+        return String(format: "%06d", ((Int(h[0]) << 16) | (Int(h[1]) << 8) | Int(h[2])) % 1_000_000)
+    }
+}
+
+extension Data {
+    init?(base64URL s: String) {
+        var t = s.replacingOccurrences(of: "-", with: "+").replacingOccurrences(of: "_", with: "/")
+        while t.count % 4 != 0 { t += "=" }
+        self.init(base64Encoded: t)
+    }
+}

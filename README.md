@@ -57,6 +57,10 @@ than merged; photos and places are combined; a removed photo stays removed.
   after 10 wrong ones. The verifier and locked key travel boxed to the
   server's built-in X25519 key, never readable on the way.
 
+The same journal is on the web at
+[tekkoh-web.cronbon.com](https://tekkoh-web.cronbon.com) (code in
+tekkoh-berth's `web/`), linked from the phone in Settings, Link a browser.
+
 [SECURITY.md](SECURITY.md) has the full design, how to check it, an
 independent review's findings, and where the protection stops.
 

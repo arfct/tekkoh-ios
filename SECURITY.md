@@ -151,6 +151,63 @@ Requests carry `Authorization: Tekkoh <username> <token>`. The server stores
 from `K`, so it reveals nothing about the key. Berth's proxy redacts the
 token from its logs: every logged request shows `"Authorization":["REDACTED"]`.
 
+## The web app
+
+[tekkoh-web.cronbon.com](https://tekkoh-web.cronbon.com) is the same
+journal in a browser. Its code is in tekkoh-berth's `web/`. It uses the
+same pages, crypto, merge rules and sync, through WebCrypto. The journal
+key is held as non-extractable `CryptoKey`s, so even the page's own script
+can use it but not read it out. Pages and photos are stored sealed in
+IndexedDB, so the journal reads and writes offline.
+
+**Linking a browser** needs your username, your PIN and your phone, and
+all three must be the same journal's:
+
+1. The browser asks for your username and PIN. It unlocks the journal key
+   through the ordinary recovery path described above, with its boxed
+   fields and its attempt limit, backoff and wipe.
+2. It makes a one-time X25519 key pair, opens a five-minute slot on the
+   server, and shows a QR code holding the slot and the public key, plus
+   six digits.
+3. In Settings, Link a browser, your phone scans the code and shows the
+   same six digits. It then puts `{username, key}` in the slot, sealed to
+   the browser's public key, so the server only ever holds the sealed box.
+4. The browser opens the box and links only if:
+   - the username matches;
+   - the key from the phone is byte-for-byte the key the PIN unlocked.
+5. It then gets its own **session token**. The server stores its hash, and
+   the phone lists linked browsers and can sign any of them out. A session
+   can read and write pages and photos, but can't change the PIN, delete
+   the journal, or link and list browsers. A browser finds out it's been
+   signed out on its next visit and wipes its copy.
+
+**What the phone adds, honestly.** Matching the phone guarantees you've
+linked the journal you meant to. It isn't a second lock: anyone with your
+username and PIN could get the key through the recovery path directly, as
+a new phone does. The protection against that is the PIN's attempt limit.
+
+**The web is weaker than the app.** On a phone, the app you installed is
+fixed. A web page is sent afresh on every visit, so whoever controls
+tekkoh-web, or Cloudflare in front of it, could serve a version that sends
+your key or your pages elsewhere. For the web, "the server can't read
+your journal" becomes "the server promises not to". Every web-based
+end-to-end encrypted service shares this. What's done about it:
+
+- **A separate origin.** The app is served from its own origin, apart from
+  the API, as static files with no build step, so what runs is what's in
+  the repo.
+- **A strict Content-Security-Policy.** Only that origin's own scripts run,
+  with no inline code. The page may connect only to the API. It can't be
+  framed, and it sends no referrer.
+- **No outside code.** The one third-party script (a QR code generator,
+  qrcode-generator 1.4.4, MIT) is vendored and makes no network calls.
+- **A browser can't do lasting damage on its own.** A linked browser can't
+  change the PIN or delete the journal, and the phone can revoke it.
+
+A signed-out browser can't reach the server, but one that had been
+tampered with could have kept a copy of the key. Signing out is a
+convenience, not a defence against a compromised browser.
+
 ## How to check
 
 All of these run from the repos, against the live server.
@@ -183,6 +240,19 @@ All of these run from the repos, against the live server.
     changes;
   - revisions;
   - a made-up `X-Forwarded-For` can't dodge the rate limit.
+- **The web app's tests** (in tekkoh-berth, run with Node 22):
+  - `web/tests/vectors.mjs` checks the browser crypto against vectors the
+    app's Swift code made: the sign-in token, entry ids, sealed pages and
+    photos, PIN stretching and unlocking, the linking box and the
+    six-digit code. Then the Swift opens a page the browser sealed.
+  - `web/tests/live.mjs` links a browser to a throwaway journal on the live
+    server, playing the phone's part. It checks that:
+    - a wrong PIN is refused;
+    - the slot is collected only once;
+    - a different journal's phone doesn't match;
+    - a session can write pages but can't delete the journal;
+    - a browser can sign itself out;
+    - pages merge as they do in the app.
 - **Watch the wire yourself.** Put the phone behind a TLS-intercepting proxy,
   such as mitmproxy with its certificate trusted on the device. Every body
   should be a page envelope, opaque photo bytes, or an `{eph, box}` pair:
