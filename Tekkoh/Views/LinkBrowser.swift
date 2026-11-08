@@ -19,7 +19,7 @@ struct LinkBrowser: View {
                 PageBackground()
                 if done {
                     VStack(spacing: 18) {
-                        Enso(size: 90)
+                        Enso(size: 90, draws: true)
                         Text("Linked").font(.serif(26)).foregroundStyle(Ink.text)
                         Text("The browser is opening your journal.").font(.serif(16)).foregroundStyle(Ink.muted)
                         Button("Done") { dismiss() }.font(.serif(17)).padding(.top, 8)

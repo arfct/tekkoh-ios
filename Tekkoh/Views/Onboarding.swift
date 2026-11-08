@@ -55,7 +55,7 @@ struct Onboarding: View {
             }
         case .working(let what):
             VStack(spacing: 24) {
-                Enso(size: 110)
+                Enso(size: 110, draws: true)
                     .rotationEffect(.degrees(spin ? 360 : 0))
                     .animation(.linear(duration: 6).repeatForever(autoreverses: false), value: spin)
                     .onAppear { spin = true }
@@ -70,7 +70,7 @@ struct Onboarding: View {
     private var welcome: some View {
         VStack(spacing: 0) {
             Spacer()
-            Enso(size: 150)
+            Enso(size: 150, draws: true)
             Text("Tekkoh")
                 .font(.serif(44, .light))
                 .tracking(2)

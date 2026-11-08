@@ -188,7 +188,7 @@ struct NewPINPrompt: View {
                 ChangePIN(journal: journal)
             } else {
                 VStack(alignment: .leading, spacing: 18) {
-                    Enso(size: 70)
+                    Enso(size: 70, draws: true)
                     Text("Choose a new PIN").font(.serif(26)).foregroundStyle(Ink.text)
                     Text(reason == .wiped
                          ? "Someone made ten wrong guesses at your PIN, so the server has destroyed your recovery copy, as it's meant to. Your journal is safe and open on this phone, but a new phone couldn't get it back until you choose a new PIN."
@@ -215,7 +215,7 @@ struct LockView: View {
         ZStack {
             PageBackground()
             VStack(spacing: 28) {
-                Enso(size: 140)
+                Enso(size: 140, draws: true)
                 Button("Open journal") { model.unlock() }
                     .font(.serif(17))
                     .buttonStyle(.bordered)

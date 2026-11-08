@@ -99,10 +99,44 @@ struct StreakStamp: View {
     }
 }
 
-/// An ensō: Tekkoh's mark, a brush circle left open.
+/// An ensō: Tekkoh's mark, a brush circle left open. With `draws`, the
+/// brush traces it when it appears: quick off the mark, slowing as it
+/// lifts, the way the stroke itself thins.
 struct Enso: View {
     var size: CGFloat = 120
     var color: Color = Ink.vermillion
+    var draws = false
+    @State private var progress: Double
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    init(size: CGFloat = 120, color: Color = Ink.vermillion, draws: Bool = false) {
+        self.size = size
+        self.color = color
+        self.draws = draws
+        _progress = State(initialValue: draws ? 0 : 1)
+    }
+
+    var body: some View {
+        EnsoStroke(color: color, progress: progress)
+            .frame(width: size, height: size)
+            .accessibilityHidden(true)
+            .onAppear {
+                guard draws, progress < 1 else { return }
+                if reduceMotion { progress = 1; return }
+                withAnimation(.timingCurve(0.15, 0.55, 0.35, 1, duration: 1.5).delay(0.15)) { progress = 1 }
+            }
+    }
+}
+
+/// The stroke itself, drawn up to `progress` of the way round.
+private struct EnsoStroke: View, Animatable {
+    var color: Color
+    var progress: Double
+
+    var animatableData: Double {
+        get { progress }
+        set { progress = newValue }
+    }
 
     var body: some View {
         Canvas { ctx, s in
@@ -110,8 +144,11 @@ struct Enso: View {
             let r = min(s.width, s.height) * 0.4
             // Built from strokes of falling width, like a brush lifting.
             let steps = 140
-            for i in 0..<steps {
-                let t0 = Double(i) / Double(steps), t1 = Double(i + 1) / Double(steps)
+            let end = Double(steps) * min(max(progress, 0), 1)
+            for i in 0..<steps where Double(i) < end {
+                let t0 = Double(i) / Double(steps)
+                // The last segment drawn grows smoothly rather than popping in.
+                let t1 = Double(min(Double(i + 1), end)) / Double(steps)
                 let a0 = Angle.degrees(-70 + 330 * t0), a1 = Angle.degrees(-70 + 330 * t1)
                 var p = Path()
                 p.addArc(center: c, radius: r + CGFloat(sin(t0 * 9)) * r * 0.012, startAngle: a0, endAngle: a1, clockwise: false)
@@ -119,8 +156,6 @@ struct Enso: View {
                 ctx.stroke(p, with: .color(color.opacity(0.88 - 0.25 * t0)), style: StrokeStyle(lineWidth: max(w, 1), lineCap: .round))
             }
         }
-        .frame(width: size, height: size)
-        .accessibilityHidden(true)
     }
 }
 
