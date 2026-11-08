@@ -27,6 +27,7 @@ struct PINPad: View {
                 }
             }
             .modifier(Shake(amount: CGFloat(shake)))
+            .sensoryFeedback(.error, trigger: shake)
             .animation(.default, value: shake)
             Text(error ?? " ").font(.label(11)).foregroundStyle(Ink.vermillion).frame(height: 14)
             Grid(horizontalSpacing: 26, verticalSpacing: 14) {

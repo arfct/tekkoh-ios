@@ -26,6 +26,11 @@ struct JournalView: View {
             }
             .background(PageBackground())
             .gesture(swipe)
+            // Haptics, kept to the moments that mean something.
+            .sensoryFeedback(.selection, trigger: day)
+            .sensoryFeedback(.impact(weight: .light), trigger: writing) { was, now in was && !now }
+            // Today's first words: the stamp lands.
+            .sensoryFeedback(.success, trigger: journal.writtenToday) { was, now in !was && now }
             .toolbar { toolbar }
             .toolbarBackground(.hidden, for: .navigationBar)
             .navigationBarTitleDisplayMode(.inline)

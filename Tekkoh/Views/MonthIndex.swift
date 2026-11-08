@@ -45,6 +45,8 @@ struct MonthIndex: View {
             }
             .background(PageBackground())
             .gesture(swipe)
+            .sensoryFeedback(.selection, trigger: month)
+            .sensoryFeedback(.impact(weight: .light), trigger: zoom)
             .simultaneousGesture(pinch)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

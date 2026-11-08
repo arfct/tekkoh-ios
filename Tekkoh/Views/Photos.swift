@@ -38,6 +38,11 @@ struct PhotoShelf: View {
             }
         }
         .sheet(item: $viewing) { p in PhotoViewer(journal: journal, day: day, photo: p) }
+        // A print taped in, or taken out (not just turning to another day).
+        .sensoryFeedback(trigger: Shelf(day: day, count: photos.count)) { was, now in
+            guard was.day == now.day, was.count != now.count else { return nil }
+            return now.count > was.count ? .impact(weight: .light) : .impact(flexibility: .soft, intensity: 0.7)
+        }
         .onChange(of: picked) { _, items in
             guard !items.isEmpty else { return }
             picked = []
@@ -92,6 +97,11 @@ struct PhotoShelf: View {
         f.locale = Locale(identifier: "en_US_POSIX")
         return f.date(from: s)
     }
+}
+
+private struct Shelf: Equatable {
+    let day: String
+    let count: Int
 }
 
 /// A print with its caption underneath.

@@ -24,6 +24,8 @@ struct Onboarding: View {
                 .id(step)
         }
         .animation(.smooth(duration: 0.35), value: step)
+        // The journal's made, or back.
+        .sensoryFeedback(.success, trigger: step) { _, now in now == .permissions }
     }
 
     @ViewBuilder private var content: some View {
