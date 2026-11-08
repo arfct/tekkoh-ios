@@ -143,6 +143,7 @@ final class Journal {
             syncError = "Couldn't save on this phone: \(error.localizedDescription)"
         }
         Reminders.shared.refresh(self)
+        WidgetGlance.update(self)
         schedulePush()
     }
 
@@ -261,6 +262,7 @@ final class Journal {
             syncError = error.localizedDescription
         }
         Reminders.shared.refresh(self)
+        WidgetGlance.update(self)
     }
 
     private func uploadPhotos() async throws {
@@ -382,6 +384,7 @@ final class Journal {
         monitor?.cancel()
         try? FileManager.default.removeItem(at: dir)
         Reminders.shared.clear()
+        WidgetGlance.clear()
     }
 
     /// Deletes the journal on the server and here, and the key everywhere.

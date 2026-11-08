@@ -74,6 +74,16 @@ as does the Keychain item, so places can be recorded in the background.
 Face ID can lock the app. Whether or not the lock is on, the app-switcher
 snapshot shows blank paper.
 
+**The widget** can't read the journal. The app gives it, through the shared
+app-group container, only:
+- the current streak and the day it last reached;
+- which of the last fourteen days have a page.
+
+It never sees words, places, health data, photos or keys. The widget can
+show on the Lock Screen and in StandBy, where it shows the streak and
+whether today's page is written, even while the phone is locked. If that's
+too much, don't add the widget.
+
 **Signing out of a phone** removes the journal from that phone but leaves
 `K` in iCloud Keychain, because deleting it there would delete it from every
 device. **Deleting the journal** removes it from the server and from the

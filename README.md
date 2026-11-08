@@ -32,6 +32,21 @@ read: a backup, and the way between your devices.
 
 The fold comes from SwiftUI's `reservedRegions(kind: .division)`.
 
+## Widget
+
+**Today** (`Widget/`) shows the date and the streak.
+
+| Size | What it shows |
+|---|---|
+| Small | the weekday in kanji, the day's number, the month, and the streak inside the ensō |
+| Medium | the same as a spread: the date on the left, the streak inside an ensō on the right, the last seven days as beads |
+| Lock Screen (circular, rectangular, inline) | the streak, with the date where there's room |
+| StandBy | the small size |
+
+The ensō stays pale until today's page is written. It turns grey once the streak has ended.
+
+The app writes a small summary to the app group `group.io.singleton.tekkoh` on every save and sync: the streak and which recent days have a page, with no content. The widget rolls itself over at midnight. `Shared/` holds the code used by both the app and the widget.
+
 ## Offline first
 
 The whole journal lives on the phone, sealed exactly as the server holds it,

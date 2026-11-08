@@ -10,7 +10,7 @@ cd "$(dirname "$0")/.."
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 DEVELOPER_DIR=${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Developer} xcrun swiftc -O -o "$work/canary" \
-  Tekkoh/Core/Crypto.swift Tekkoh/Core/Models.swift Tekkoh/Core/API.swift Tekkoh/Core/Transport.swift Tekkoh/Core/Keychain.swift Checks/canary/main.swift
+  Tekkoh/Core/Crypto.swift Tekkoh/Core/Models.swift Shared/Day.swift Tekkoh/Core/API.swift Tekkoh/Core/Transport.swift Tekkoh/Core/Keychain.swift Checks/canary/main.swift
 
 set -- $("$work/canary" write "$work/id.json")
 handle=$1 marker=$2 pin=$3

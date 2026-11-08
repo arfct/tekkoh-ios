@@ -181,31 +181,38 @@ struct WritingSurface: View {
     let journal: Journal
     let day: String
     var roomy = false
+    /// The widest the lines may run; the grid still fills the page.
+    var measure: CGFloat? = nil
     @Binding var writing: Bool
     @State private var text = ""
     @State private var loadedDay = ""
     @FocusState private var focused: Bool
 
+    @ViewBuilder private var words: some View {
+        if text.isEmpty {
+            Text(day == Day.today ? "Today…" : "This day…")
+                .font(.serif(17).italic())
+                .foregroundStyle(Ink.faint)
+                .padding(.horizontal, roomy ? 33 : 25)
+                .padding(.top, roomy ? 32 : 20)
+                .allowsHitTesting(false)
+        }
+        TextEditor(text: $text)
+            .font(.serif(17))
+            .lineSpacing(Ink.line - 20.3)
+            .foregroundStyle(Ink.text)
+            .scrollContentBackground(.hidden)
+            .padding(.horizontal, roomy ? 28 : 20)
+            .padding(.vertical, roomy ? 24 : 12)
+            .focused($focused)
+            .accessibilityLabel(day == Day.today ? "Today's writing" : "This day's writing")
+    }
+
     var body: some View {
-        ZStack(alignment: .topLeading) {
+        ZStack(alignment: .top) {
             GridPaper()
-            if text.isEmpty {
-                Text(day == Day.today ? "Today…" : "This day…")
-                    .font(.serif(17).italic())
-                    .foregroundStyle(Ink.faint)
-                    .padding(.horizontal, roomy ? 33 : 25)
-                    .padding(.top, roomy ? 32 : 20)
-                    .allowsHitTesting(false)
-            }
-            TextEditor(text: $text)
-                .font(.serif(17))
-                .lineSpacing(Ink.line - 20.3)
-                .foregroundStyle(Ink.text)
-                .scrollContentBackground(.hidden)
-                .padding(.horizontal, roomy ? 28 : 20)
-                .padding(.vertical, roomy ? 24 : 12)
-                .focused($focused)
-                .accessibilityLabel("Today's writing")
+            ZStack(alignment: .topLeading) { words }
+                .frame(maxWidth: measure ?? .infinity)
         }
         .contentShape(.rect)
         .onTapGesture { focused = true }

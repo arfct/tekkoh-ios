@@ -139,6 +139,7 @@ final class AppModel {
         await j.sync()
         await DayContext.refreshRecent(j)
         Reminders.shared.refresh(j)
+        WidgetGlance.update(j)
     }
 }
 

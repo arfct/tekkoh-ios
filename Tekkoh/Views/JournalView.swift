@@ -12,15 +12,19 @@ struct JournalView: View {
     @State private var live = DayContext.Live()
     /// The keyboard's up: the bar shows a tick to put it away.
     @State private var writing = false
+    /// On a wide spread, the margin page put away to write on its own.
+    @AppStorage("focusWriting") private var focus = false
+    /// Whether the layout is a side-by-side spread the margin can leave.
+    @State private var canFocus = false
     @Environment(\.scenePhase) private var phase
     @Environment(\.horizontalSizeClass) private var hSize
 
     var body: some View {
         NavigationStack {
-            Spread(fold: { g in Self.fold(g) }) {
+            Spread(fold: { g in Self.fold(g) }, focus: focus && canFocus, canFocus: $canFocus) {
                 MarginPage(journal: journal, day: day, live: live, wide: true)
             } right: {
-                WritingPage(journal: journal, day: day, live: live, writing: $writing)
+                WritingPage(journal: journal, day: day, live: live, writing: $writing, measure: focus && canFocus ? 620 : nil)
             } single: {
                 SinglePage(journal: journal, day: day, live: live, writing: $writing)
             }
@@ -29,6 +33,7 @@ struct JournalView: View {
             // Haptics, kept to the moments that mean something.
             .sensoryFeedback(.selection, trigger: day)
             .sensoryFeedback(.impact(weight: .light), trigger: writing) { was, now in was && !now }
+            .sensoryFeedback(.impact(flexibility: .soft), trigger: focus)
             // Today's first words: the stamp lands.
             .sensoryFeedback(.success, trigger: journal.writtenToday) { was, now in !was && now }
             .toolbar { toolbar }
@@ -75,8 +80,26 @@ struct JournalView: View {
                 Button { withAnimation(.smooth) { day = Day.today } } label: { Label("Go to today", systemImage: "forward.end") }
             }
         }
+        if canFocus {
+            ToolbarItem(placement: .topBarLeading) {
+                Button {
+                    withAnimation(.smooth(duration: 0.35)) { focus.toggle() }
+                } label: {
+                    Label(focus ? "Show the margin" : "Focus on writing", systemImage: focus ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right")
+                }
+            }
+        }
         ToolbarItem(placement: .principal) {
-            SyncMark(journal: journal)
+            HStack(spacing: 10) {
+                if focus && canFocus {
+                    // With the margin away, the day still shows.
+                    Text(Day.date(day).formatted(.dateTime.weekday(.wide).day().month(.wide)).uppercased())
+                        .font(.label(10)).tracking(1.5)
+                        .foregroundStyle(Ink.text)
+                    Text("·").foregroundStyle(Ink.faint)
+                }
+                SyncMark(journal: journal)
+            }
         }
         ToolbarItemGroup(placement: .topBarTrailing) {
             if writing {
@@ -109,6 +132,10 @@ struct JournalView: View {
 /// page otherwise.
 struct Spread<Left: View, Right: View, Single: View>: View {
     let fold: (GeometryProxy) -> CGRect?
+    /// Put the left page away and give the right the whole screen. Only on
+    /// a flat spread: across a fold the writing would run over the hinge.
+    var focus = false
+    @Binding var canFocus: Bool
     @ViewBuilder var left: Left
     @ViewBuilder var right: Right
     @ViewBuilder var single: Single
@@ -131,14 +158,28 @@ struct Spread<Left: View, Right: View, Single: View>: View {
                 }
             } else if size.width >= 640 {
                 HStack(spacing: 0) {
-                    ScrollView { left }.frame(width: (size.width / 2).rounded())
-                    Spine().frame(width: 1)
+                    if !focus {
+                        ScrollView { left }
+                            .frame(width: (size.width / 2).rounded())
+                            .transition(.move(edge: .leading).combined(with: .opacity))
+                        Spine().frame(width: 1)
+                            .transition(.opacity)
+                    }
                     right
                 }
             } else {
                 single
             }
         }
+        .onGeometryChange(for: Bool.self) { g in
+            // The same test as above: a flat spread, not across a fold.
+            g.size.width >= 640 && !Self.folded(g.size, fold(g))
+        } action: { canFocus = $0 }
+    }
+
+    private static func folded(_ size: CGSize, _ fold: CGRect?) -> Bool {
+        guard let f = fold, !f.isEmpty else { return false }
+        return f.width >= f.height ? (f.minY > 140 && f.maxY < size.height - 140) : (f.minX > 260 && f.maxX < size.width - 260)
     }
 }
 
@@ -205,9 +246,10 @@ struct WritingPage: View {
     let day: String
     let live: DayContext.Live
     @Binding var writing: Bool
+    var measure: CGFloat? = nil
 
     var body: some View {
-        WritingSurface(journal: journal, day: day, roomy: true, writing: $writing)
+        WritingSurface(journal: journal, day: day, roomy: true, measure: measure, writing: $writing)
     }
 }
 

@@ -6,5 +6,5 @@ set -e
 cd "$(dirname "$0")/.."
 out=$(mktemp -d)
 DEVELOPER_DIR=${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Developer} xcrun swiftc -O -o "$out/checks" \
-  Tekkoh/Core/Crypto.swift Tekkoh/Core/Models.swift Tekkoh/Core/API.swift Tekkoh/Core/Transport.swift Tekkoh/Core/Keychain.swift Tekkoh/Core/SunTimes.swift Checks/main.swift
+  Tekkoh/Core/Crypto.swift Tekkoh/Core/Models.swift Shared/Day.swift Tekkoh/Core/API.swift Tekkoh/Core/Transport.swift Tekkoh/Core/Keychain.swift Tekkoh/Core/SunTimes.swift Checks/main.swift
 "$out/checks"
