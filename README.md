@@ -1,0 +1,71 @@
+# Tekkoh for iPhone
+
+A daily journal, after the Hobonichi Techo: one page a day on cream grid
+paper, the day's places, movement and photos in the margin, and a streak you
+keep by writing every day. Built for iPhone and for iPhone Duo, where the
+inside display opens it as a two-page spread.
+
+Everything is encrypted on the phone with a key only you hold. The server
+([tekkoh-berth](https://github.com/dps/tekkoh-berth)) keeps a copy it can't
+read: a backup, and the way between your devices.
+
+## What's on a page
+
+- **Words**, on a 12 pt grid, saved as you type.
+- **Places**: Core Location visits and significant moves, kept on the phone
+  (encrypted) and named with MapKit, with a quiet map on the spread.
+- **Movement** from Apple Health: steps, distance, flights, workouts.
+- **Sunrise and sunset**, worked out on the phone for where you were.
+- **Photos**: suggested from that day's camera roll, or picked; captions
+  typed under each print; × to take one out.
+- **The streak**: a vermillion hanko stamp on today's page, and the month
+  index marks every day written. At 9:30 pm, if today is blank, a local
+  notification says how long the streak is and that it ends at midnight.
+
+## Layouts
+
+| | |
+|---|---|
+| iPhone, Duo outside display | one page: date, margin notes, writing, photos |
+| Duo inside, open flat or as a book | a spread: margin (date, map, places, movement, photos) left, writing right, the fold on the spine |
+| Duo tabletop | writing on the raised half, the margin lying flat |
+
+The fold comes from SwiftUI's `reservedRegions(kind: .division)`.
+
+## Offline first
+
+The whole journal lives on the phone, sealed exactly as the server holds it,
+so it reads and writes on a plane. Changes queue and sync when the network
+returns (an `NWPathMonitor` and background refresh). If two devices change
+the same day, their words are put one after the other with a divider rather
+than merged; photos and places are combined; a removed photo stays removed.
+
+## Keys
+
+- A random 256-bit **journal key** in the Keychain, synced by iCloud
+  Keychain to your own devices, readable after first unlock so places can
+  be recorded in the background.
+- **Each entry** sealed with its own AES-GCM key, itself sealed with the
+  journal key; entry ids are an HMAC of the day, so the server can't see
+  which days you wrote.
+- **Each photo** sealed with its own key, kept in its entry.
+- **Signing in**: a token derived from the journal key (HKDF).
+- **Your 6-digit PIN** brings the key back on a new phone. It's stretched
+  (PBKDF2-SHA256, 600,000 rounds) into a verifier and a wrapping key; the
+  server checks the verifier against an HMAC under a secret it keeps outside
+  its database, releases the locked key only for the right PIN, and wipes it
+  after 10 wrong ones. See the server's README for the limits of that.
+
+Usernames, not emails: there's nothing else to give.
+
+## Building
+
+Open `Tekkoh.xcodeproj` (Xcode 27, iOS 27.1+), or:
+
+```sh
+xcodebuild -project Tekkoh.xcodeproj -scheme Tekkoh -destination 'id=<device>' -allowProvisioningUpdates build
+```
+
+`Checks/run.sh` checks the crypto, merging, streaks and sun times on the
+Mac, and the account, recovery and sync cycle against the live server with
+a throwaway account.
