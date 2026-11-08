@@ -9,8 +9,8 @@ import Foundation
 /// - Entries: each has its own random key; the entry's JSON is sealed with
 ///   it (AES-GCM) and the entry key is sealed with the journal key.
 /// - Photos: each has its own random key, kept inside its (encrypted) entry.
-/// - Entry ids: a keyed hash of the day, so the server can't tell which days
-///   were written.
+/// - Entry ids: a keyed hash of the day, so ids don't show dates (when a
+///   page is first uploaded still roughly does).
 /// - Signing in: a token derived from the journal key; the server keeps its
 ///   hash and learns nothing about the key.
 /// - The PIN: stretched with PBKDF2 into a verifier (sent to the server) and

@@ -32,7 +32,9 @@ struct Onboarding: View {
         case .username(let restore): username(restore)
         case .pin(let h):
             PINPad(title: "Choose a 6-digit PIN",
-                   subtitle: "It brings your journal back on a new phone. Only you know it: Tekkoh can't reset it, and ten wrong tries lock it for good.") { pin in
+                   subtitle: "It brings your journal back on a new phone. Only you know it: Tekkoh can't reset it, and ten wrong tries lock it for good.",
+                   error: error) { pin in
+                if let p = PINPolicy.problem(pin) { error = p; return }
                 error = nil
                 step = .confirm(handle: h, pin: pin)
             }
@@ -87,6 +89,12 @@ struct Onboarding: View {
             }
             .buttonStyle(.borderedProminent)
             .tint(Ink.vermillion)
+            if let kept = Keychain.load() {
+                // Signed out here, but the key's still in iCloud Keychain.
+                Button("Open \(kept.handle)'s journal") { identity = kept; step = .permissions }
+                    .font(.serif(16))
+                    .padding(.top, 14)
+            }
             Button("I already have one") { step = .username(restore: true) }
                 .font(.serif(16))
                 .padding(.top, 14)
@@ -143,6 +151,7 @@ struct Onboarding: View {
             try await API().createAccount(handle: h, journal: key, pin: pin)
             let id = Keychain.Identity(handle: h, key: key.data)
             try Keychain.save(id)
+            AppModel.setPINBoxed(h)
             identity = id
             step = .permissions
         } catch let API.Failure.status(code, msg, _) {
@@ -174,6 +183,10 @@ struct Onboarding: View {
             case 403:
                 let left = obj["attemptsLeft"] as? Int ?? 0
                 error = "Wrong PIN. \(left) \(left == 1 ? "try" : "tries") left."
+                step = .restorePIN(handle: h)
+            case 429:
+                let wait = obj["retryAfter"] as? Int ?? 60
+                error = "Too many wrong PINs. Try again in \(wait < 120 ? "a minute" : "\(wait / 60) minutes")."
                 step = .restorePIN(handle: h)
             case 404:
                 error = "No journal with that username."

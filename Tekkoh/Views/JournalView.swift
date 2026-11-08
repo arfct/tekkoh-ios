@@ -10,6 +10,8 @@ struct JournalView: View {
     @State private var showIndex = false
     @State private var showSettings = false
     @State private var live = DayContext.Live()
+    /// The keyboard's up: the bar shows a tick to put it away.
+    @State private var writing = false
     @Environment(\.scenePhase) private var phase
     @Environment(\.horizontalSizeClass) private var hSize
 
@@ -18,9 +20,9 @@ struct JournalView: View {
             Spread(fold: { g in Self.fold(g) }) {
                 MarginPage(journal: journal, day: day, live: live, wide: true)
             } right: {
-                WritingPage(journal: journal, day: day, live: live)
+                WritingPage(journal: journal, day: day, live: live, writing: $writing)
             } single: {
-                SinglePage(journal: journal, day: day, live: live)
+                SinglePage(journal: journal, day: day, live: live, writing: $writing)
             }
             .background(PageBackground())
             .gesture(swipe)
@@ -74,8 +76,14 @@ struct JournalView: View {
             }
         }
         ToolbarItemGroup(placement: .topBarTrailing) {
-            Button { showIndex = true } label: { Label("Index", systemImage: "calendar") }
-            Button { showSettings = true } label: { Label("Settings", systemImage: "gearshape") }
+            if writing {
+                Button { writing = false } label: { Label("Done writing", systemImage: "checkmark") }
+                    .buttonStyle(.borderedProminent)
+                    .tint(Ink.vermillion)
+            } else {
+                Button { showIndex = true } label: { Label("Index", systemImage: "calendar") }
+                Button { showSettings = true } label: { Label("Settings", systemImage: "gearshape") }
+            }
         }
     }
 
@@ -148,6 +156,7 @@ struct SinglePage: View {
     let journal: Journal
     let day: String
     let live: DayContext.Live
+    @Binding var writing: Bool
 
     var body: some View {
         ScrollView {
@@ -157,7 +166,7 @@ struct SinglePage: View {
                 MarginNotes(entry: journal.entry(day), live: live, day: day)
                     .padding(.horizontal, 20)
                     .padding(.top, 10)
-                WritingSurface(journal: journal, day: day)
+                WritingSurface(journal: journal, day: day, writing: $writing)
                     .frame(minHeight: 340)
                     .padding(.top, 12)
                 PhotoShelf(journal: journal, day: day, layout: .strip)
@@ -192,9 +201,10 @@ struct WritingPage: View {
     let journal: Journal
     let day: String
     let live: DayContext.Live
+    @Binding var writing: Bool
 
     var body: some View {
-        WritingSurface(journal: journal, day: day, roomy: true)
+        WritingSurface(journal: journal, day: day, roomy: true, writing: $writing)
     }
 }
 

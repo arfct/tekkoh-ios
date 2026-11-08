@@ -60,6 +60,20 @@ let repeated = v1.text + Entry.divider + v2.text + Entry.divider + v2.text + " T
 check(Entry.collapsingRepeats(repeated) == v2.text + " Then dinner.", "repeats from the bug collapse to the fullest version")
 check(Entry.collapsingRepeats(m.text) == nil, "two devices' different words are left alone")
 
+// Obvious PINs are refused; ordinary ones aren't.
+for weak in ["111111", "123456", "654321", "890123", "121212", "123123", "123321", "112112", "147258", "135790"] {
+    check(PINPolicy.problem(weak) != nil, "refuses \(weak)")
+}
+for fine in ["374912", "508263", "961407"] {
+    check(PINPolicy.problem(fine) == nil, "allows \(fine)")
+}
+
+// Versions only go up, so an older copy can be recognised.
+let older = Entry(day: "2026-11-07", text: "a", version: 3)
+var newer = older; newer.text = "ab"; newer.version = 5
+check(Entry.merge(older, newer).v == 6, "a merge is newer than both sides")
+check(older.v < newer.v, "a replayed older page has a lower version")
+
 // Streaks.
 let days: Set<String> = ["2026-11-03", "2026-11-04", "2026-11-05", "2026-11-06", "2026-10-01", "2026-10-02"]
 check(Streak.current(days, today: "2026-11-07") == 4, "streak counts back from yesterday when today's blank")

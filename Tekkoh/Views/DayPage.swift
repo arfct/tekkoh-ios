@@ -181,6 +181,7 @@ struct WritingSurface: View {
     let journal: Journal
     let day: String
     var roomy = false
+    @Binding var writing: Bool
     @State private var text = ""
     @State private var loadedDay = ""
     @FocusState private var focused: Bool
@@ -223,13 +224,10 @@ struct WritingSurface: View {
             journal.update(day) { $0.text = text }
         }
         .onChange(of: focused) { _, f in
+            writing = f
             if !f, loadedDay == day, text != journal.entry(day).text { journal.update(day) { $0.text = text } }
         }
-        .toolbar {
-            ToolbarItemGroup(placement: .keyboard) {
-                Spacer()
-                Button("Done") { focused = false }.font(.serif(16))
-            }
-        }
+        // The tick in the bar puts the keyboard away.
+        .onChange(of: writing) { _, w in if !w { focused = false } }
     }
 }

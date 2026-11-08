@@ -39,21 +39,47 @@ struct TekkohApp: App {
 final class AppModel {
     static let refreshTask = "io.singleton.tekkoh.refresh"
 
+    /// The app's one model, so background work uses the same journal
+    /// rather than a second copy writing the same files.
+    static weak var current: AppModel?
+
     var journal: Journal?
     var locked = false
+    /// Set when the server no longer holds a usable PIN recovery: asks for
+    /// a new PIN.
+    var needsNewPIN: PINReason?
+
+    enum PINReason: Identifiable {
+        case wiped, exposed
+        var id: Self { self }
+    }
+
+    /// Signing out of this phone leaves the key in iCloud Keychain (deleting
+    /// it there deletes it everywhere), so this phone remembers not to open it.
+    static var signedOutHere: Bool {
+        get { UserDefaults.standard.bool(forKey: "signedOutHere") }
+        set { UserDefaults.standard.set(newValue, forKey: "signedOutHere") }
+    }
+
+    /// Whether this phone set (or used) the PIN with recovery fields boxed
+    /// to the server's key. Before that they travelled readable.
+    static func pinBoxed(_ handle: String) -> Bool { UserDefaults.standard.bool(forKey: "pinBoxed.\(handle)") }
+    static func setPINBoxed(_ handle: String) { UserDefaults.standard.set(true, forKey: "pinBoxed.\(handle)") }
     var lockEnabled: Bool {
         get { UserDefaults.standard.bool(forKey: "faceID") }
         set { UserDefaults.standard.set(newValue, forKey: "faceID") }
     }
 
     init() {
-        if let id = Keychain.load() {
+        if !Self.signedOutHere, let id = Keychain.load() {
             journal = Journal(identity: id)
             locked = lockEnabled
         }
+        Self.current = self
     }
 
     func signedIn(_ id: Keychain.Identity) {
+        Self.signedOutHere = false
         journal = Journal(identity: id)
         locked = false
         becameActive()
@@ -62,7 +88,16 @@ final class AppModel {
     func signedOut() {
         journal?.signOut()
         Places.shared.forget()
+        Self.signedOutHere = true
         journal = nil
+    }
+
+    /// Asks for a new PIN if the server's recovery is gone (ten wrong tries
+    /// by anyone wipe it) or was set when its fields travelled readable.
+    func checkRecovery() async {
+        guard let journal, needsNewPIN == nil else { return }
+        guard let active = await journal.recoveryActive() else { return }
+        if !active { needsNewPIN = .wiped } else if !Self.pinBoxed(journal.handle) { needsNewPIN = .exposed }
     }
 
     func becameActive() {
@@ -73,6 +108,7 @@ final class AppModel {
         Task {
             await journal.sync()
             await DayContext.refreshRecent(journal)
+            await checkRecovery()
         }
     }
 
@@ -93,8 +129,13 @@ final class AppModel {
     /// In the background: sync, fold the day's places and activity into
     /// pages already written, and reschedule the evening nudge.
     static func backgroundRefresh() async {
-        guard let id = Keychain.load() else { return }
-        let j = Journal(identity: id)
+        let j: Journal
+        if let open = current?.journal {
+            j = open
+        } else {
+            guard !signedOutHere, let id = Keychain.load() else { return }
+            j = Journal(identity: id)
+        }
         await j.sync()
         await DayContext.refreshRecent(j)
         Reminders.shared.refresh(j)
@@ -103,8 +144,10 @@ final class AppModel {
 
 struct RootView: View {
     @Environment(AppModel.self) private var model
+    @Environment(\.scenePhase) private var phase
 
     var body: some View {
+        @Bindable var model = model
         Group {
             if let journal = model.journal {
                 if model.locked {
@@ -118,6 +161,49 @@ struct RootView: View {
         }
         .animation(.smooth(duration: 0.35), value: model.journal == nil)
         .animation(.smooth(duration: 0.25), value: model.locked)
+        // The app switcher's snapshot shows paper, not a page.
+        .overlay {
+            if phase != .active && model.journal != nil {
+                ZStack { PageBackground(); Enso(size: 120) }.transition(.opacity)
+            }
+        }
+        .sheet(item: $model.needsNewPIN) { reason in
+            if let j = model.journal { NewPINPrompt(journal: j, reason: reason) }
+        }
+    }
+}
+
+/// When the server's PIN recovery is gone or may have been seen: choose a
+/// new PIN. The journal itself is unaffected; this is about a future phone.
+struct NewPINPrompt: View {
+    let journal: Journal
+    let reason: AppModel.PINReason
+    @State private var choosing = false
+
+    var body: some View {
+        ZStack {
+            PageBackground()
+            if choosing {
+                ChangePIN(journal: journal)
+            } else {
+                VStack(alignment: .leading, spacing: 18) {
+                    Enso(size: 70)
+                    Text("Choose a new PIN").font(.serif(26)).foregroundStyle(Ink.text)
+                    Text(reason == .wiped
+                         ? "Someone made ten wrong guesses at your PIN, so the server has destroyed your recovery copy, as it's meant to. Your journal is safe and open on this phone, but a new phone couldn't get it back until you choose a new PIN."
+                         : "An earlier version of Tekkoh sent your PIN's recovery information in a form the server's operator, or a network in between, could have used to guess your PIN. Choose a new one: it travels sealed now.")
+                        .font(.serif(16)).foregroundStyle(Ink.muted)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Button { choosing = true } label: {
+                        Text("Choose a new PIN").font(.serif(18)).frame(maxWidth: .infinity).padding(.vertical, 6)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(Ink.vermillion)
+                }
+                .padding(30)
+            }
+        }
+        .interactiveDismissDisabled(reason == .wiped)
     }
 }
 

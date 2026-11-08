@@ -64,7 +64,9 @@ struct API {
 
     // MARK: Accounts and recovery
 
-    static func recoveryPayload(journal: SymmetricKey, pin: String, handle: String) throws -> [String: Any] {
+    /// The PIN's verifier and the PIN-locked key, which must only ever
+    /// travel inside a box to the server (either is enough to try every PIN).
+    static func recoveryFields(journal: SymmetricKey, pin: String, handle: String) throws -> [String: Any] {
         let salt = Crypto.randomBytes(16)
         let p = Crypto.stretch(pin: pin, salt: salt)
         return [
@@ -76,15 +78,17 @@ struct API {
     }
 
     func createAccount(handle: String, journal: SymmetricKey, pin: String) async throws {
+        let box = try Transport.seal(try Self.recoveryFields(journal: journal, pin: pin, handle: handle), purpose: "create")
         _ = try await object("POST", "/v1/accounts", json: [
             "handle": handle,
             "auth": Crypto.authToken(journal).base64EncodedString(),
-            "recovery": try Self.recoveryPayload(journal: journal, pin: pin, handle: handle),
+            "recovery": box.body,
         ])
     }
 
     func setPIN(_ pin: String, journal: SymmetricKey) async throws {
-        _ = try await object("PUT", "/v1/recovery", json: try Self.recoveryPayload(journal: journal, pin: pin, handle: handle ?? ""))
+        let box = try Transport.seal(try Self.recoveryFields(journal: journal, pin: pin, handle: handle ?? ""), purpose: "set-recovery")
+        _ = try await object("PUT", "/v1/recovery", json: box.body)
     }
 
     struct RecoveryParams {
@@ -94,17 +98,28 @@ struct API {
     }
 
     func recoveryParams(handle: String) async throws -> RecoveryParams {
-        let q = handle.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? handle
-        let o = try await object("GET", "/v1/recovery?handle=\(q)")
-        return RecoveryParams(salt: Data(base64Encoded: o["salt"] as? String ?? "") ?? Data(),
-                              iterations: o["iterations"] as? Int ?? Crypto.pinIterations,
-                              attemptsLeft: o["attemptsLeft"] as? Int ?? 0)
+        // In the body, not the URL, so the username stays out of access logs.
+        let o = try await object("POST", "/v1/recovery/params", json: ["handle": handle])
+        let p = RecoveryParams(salt: Data(base64Encoded: o["salt"] as? String ?? "") ?? Data(),
+                               iterations: o["iterations"] as? Int ?? 0,
+                               attemptsLeft: o["attemptsLeft"] as? Int ?? 0)
+        // Don't let a server talk the phone into weak stretching.
+        guard p.salt.count >= 16, p.iterations >= Crypto.pinIterations, p.iterations <= 20_000_000 else {
+            throw Failure.status(0, "The server asked for unsafe PIN settings.", [:])
+        }
+        return p
     }
 
-    /// The locked journal key, for the right PIN's verifier.
+    /// The locked journal key, for the right PIN's verifier. Both travel
+    /// boxed to the server's key.
     func recover(handle: String, verifier: Data) async throws -> Data {
-        let o = try await object("POST", "/v1/recovery", json: ["handle": handle, "verifier": verifier.base64EncodedString()])
-        return Data(base64Encoded: o["blob"] as? String ?? "") ?? Data()
+        let box = try Transport.seal(["verifier": verifier.base64EncodedString()], purpose: "recover")
+        let o = try await object("POST", "/v1/recovery", json: ["handle": handle, "proof": box.body])
+        guard let reply = (o["reply"] as? String).flatMap({ Data(base64Encoded: $0) }),
+              let blob = (try box.open(reply)["blob"] as? String).flatMap({ Data(base64Encoded: $0) }) else {
+            throw Failure.status(0, "The server's reply didn't open.", [:])
+        }
+        return blob
     }
 
     func me() async throws -> [String: Any] { try await object("GET", "/v1/me") }

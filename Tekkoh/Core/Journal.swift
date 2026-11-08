@@ -25,9 +25,14 @@ final class Journal {
     @ObservationIgnored private var pushTask: Task<Void, Never>?
     @ObservationIgnored private var monitor: NWPathMonitor?
     @ObservationIgnored private let thumbs = NSCache<NSString, UIImage>()
+    /// Entry id to day, from the decrypted entries.
+    @ObservationIgnored private var dayOf: [String: String] = [:]
 
+    /// What sync needs about an entry. Which day it is lives only inside
+    /// the encrypted entry, not in this file. (Older builds wrote `day`
+    /// here; it's read and dropped.)
     struct Record: Codable {
-        var day: String
+        var day: String?
         var rev: Int = 0
         var dirty = false
     }
@@ -78,11 +83,12 @@ final class Journal {
 
     private func load() {
         if let d = try? Data(contentsOf: stateURL), let s = try? JSONDecoder().decode(State.self, from: d) { state = s }
-        for (id, rec) in state.records {
+        for id in state.records.keys {
             guard let sealed = try? Data(contentsOf: entryURL(id)),
                   let plain = try? Crypto.openEntry(sealed, id: id, journal: key),
                   let e = try? JSONDecoder.tekkoh.decode(Entry.self, from: plain) else { continue }
-            entries[rec.day] = e
+            entries[e.day] = e
+            dayOf[id] = e.day
         }
         repairRepeats()
     }
@@ -103,7 +109,9 @@ final class Journal {
     }
 
     private func saveState() {
-        if let d = try? JSONEncoder().encode(state) { try? d.write(to: stateURL, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication]) }
+        var s = state
+        for k in s.records.keys { s.records[k]?.day = nil }
+        if let d = try? JSONEncoder().encode(s) { try? d.write(to: stateURL, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication]) }
     }
 
     private func write(_ e: Entry) throws -> Data {
@@ -121,11 +129,13 @@ final class Journal {
         guard entries[e.day] != e else { return }
         e.updated = .now
         if entries[e.day] == nil { e.created = .now }
+        e.version = max(e.v, entries[e.day]?.v ?? 0) + 1
         entries[e.day] = e
         let id = Crypto.entryID(key, day: e.day)
+        dayOf[id] = e.day
         do {
             _ = try write(e)
-            var rec = state.records[id] ?? Record(day: e.day)
+            var rec = state.records[id] ?? Record()
             rec.dirty = true
             state.records[id] = rec
             saveState()
@@ -267,7 +277,12 @@ final class Journal {
 
     private func removePhotos() async throws {
         for id in state.removals {
-            try? await api.delete(blob: id)
+            do {
+                try await api.delete(blob: id)
+            } catch let API.Failure.status(code, _, _) where code == 404 {
+                // Already gone.
+            }
+            // Anything else (offline, a server error) leaves it queued.
             state.removals.removeAll { $0 == id }
             saveState()
         }
@@ -287,12 +302,11 @@ final class Journal {
     private func apply(_ r: API.Remote) {
         let local = state.records[r.id]
         if r.deleted {
-            if let local, !local.dirty {
-                entries[local.day] = nil
-                try? FileManager.default.removeItem(at: entryURL(r.id))
-                state.records[r.id] = nil
-            } else if var local {
-                local.rev = r.rev // ours wins; write it back over the tombstone
+            // The app never deletes a page, so a deletion can only be forged:
+            // keep ours and put it back.
+            if var local, dayOf[r.id] != nil {
+                local.rev = r.rev
+                local.dirty = true
                 state.records[r.id] = local
             }
             return
@@ -301,17 +315,23 @@ final class Journal {
         if let local, r.rev <= local.rev { return }
         guard let data = r.data, let plain = try? Crypto.openEntry(data, id: r.id, journal: key),
               let remote = try? JSONDecoder.tekkoh.decode(Entry.self, from: plain) else { return }
-        if let local, local.dirty, let mine = entries[local.day] {
+        // The id must be this day's: a server can't move a page to another date.
+        guard Crypto.entryID(key, day: remote.day) == r.id else { return }
+        dayOf[r.id] = remote.day
+        if let local, local.dirty, let mine = entries[remote.day] {
             let merged = Entry.merge(remote, mine, base: base(r.id))
             entries[remote.day] = merged
             _ = try? write(merged)
             setBase(r.id, data)
-            state.records[r.id] = Record(day: remote.day, rev: r.rev, dirty: merged != remote)
+            state.records[r.id] = Record(rev: r.rev, dirty: merged != remote)
+        } else if let mine = entries[remote.day], remote.v < mine.v {
+            // An older version than we have: a replay. Keep ours and put it back.
+            state.records[r.id] = Record(rev: r.rev, dirty: true)
         } else {
             setBase(r.id, data)
             entries[remote.day] = remote
             try? data.write(to: entryURL(r.id), options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
-            state.records[r.id] = Record(day: remote.day, rev: r.rev, dirty: false)
+            state.records[r.id] = Record(rev: r.rev, dirty: false)
         }
     }
 
@@ -356,17 +376,25 @@ final class Journal {
 
     // MARK: Leaving
 
-    /// Removes the journal from this phone (and the key from the Keychain).
+    /// Removes the journal from this phone. The key stays in iCloud
+    /// Keychain: deleting it there would delete it from every device.
     func signOut() {
         monitor?.cancel()
         try? FileManager.default.removeItem(at: dir)
-        Keychain.delete()
         Reminders.shared.clear()
     }
 
+    /// Deletes the journal on the server and here, and the key everywhere.
     func deleteEverywhere() async throws {
         try await api.deleteAccount()
         signOut()
+        Keychain.delete()
+    }
+
+    /// Whether the server still holds a PIN recovery for this journal
+    /// (ten wrong PINs remove it); nil if it can't be reached.
+    func recoveryActive() async -> Bool? {
+        (try? await api.me())?["recovery"] as? Bool
     }
 
     func changePIN(_ pin: String) async throws {

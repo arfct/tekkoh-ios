@@ -13,8 +13,12 @@ struct Entry: Codable, Equatable, Identifiable {
     var sun: Sun?
     var created: Date = .now
     var updated: Date = .now
+    /// Counts up with every save, inside the encryption, so a server can't
+    /// hand back an older version of a page as if it were current.
+    var version: Int?
 
     var id: String { day }
+    var v: Int { version ?? 0 }
 
     /// What counts toward the streak: some words or a photo.
     var hasContent: Bool {
@@ -88,6 +92,7 @@ struct Entry: Codable, Equatable, Identifiable {
         out.sun = local.sun ?? remote.sun
         out.created = min(remote.created, local.created)
         out.updated = max(remote.updated, local.updated, .now)
+        out.version = max(remote.v, local.v) + 1
         return out
     }
 }
@@ -193,6 +198,31 @@ enum Day {
     static func interval(_ key: String) -> DateInterval {
         let start = Calendar.current.startOfDay(for: date(key))
         return DateInterval(start: start, end: Calendar.current.date(byAdding: .day, value: 1, to: start) ?? start)
+    }
+}
+
+/// PINs anyone would try first. With ten tries, these are the ones that
+/// would fall, so they aren't allowed.
+enum PINPolicy {
+    static let common: Set<String> = [
+        "123123", "112233", "121212", "131313", "101010", "123321", "147258", "258369", "159357", "159753",
+        "147852", "789456", "456123", "963852", "741852", "852963", "102030", "520520", "696969", "100200",
+        "121314", "112211", "987654", "456789", "012345", "098765", "135790", "246810", "111222", "123654",
+    ]
+
+    /// Why a PIN is too easy to guess, or nil if it's fine.
+    static func problem(_ pin: String) -> String? {
+        let d = pin.compactMap(\.wholeNumberValue)
+        guard d.count == 6 else { return "Six digits." }
+        if Set(d).count == 1 { return "Not one digit six times." }
+        let steps = zip(d, d.dropFirst()).map { ($1 - $0 + 10) % 10 }
+        if Set(steps).count == 1 && (steps[0] == 1 || steps[0] == 9) { return "Not a run of digits." }
+        if d[0..<2] == d[2..<4] && d[2..<4] == d[4..<6] { return "Not one pair three times." }
+        if d[0..<3] == d[3..<6] { return "Not the same three twice." }
+        if d == d.reversed() { return "Not the same both ways." }
+        if Set(d).count <= 2 { return "Use more than two different digits." }
+        if common.contains(pin) { return "That's one of the first PINs anyone would try." }
+        return nil
     }
 }
 

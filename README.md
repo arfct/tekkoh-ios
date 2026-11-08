@@ -46,15 +46,19 @@ than merged; photos and places are combined; a removed photo stays removed.
   Keychain to your own devices, readable after first unlock so places can
   be recorded in the background.
 - **Each entry** sealed with its own AES-GCM key, itself sealed with the
-  journal key; entry ids are an HMAC of the day, so the server can't see
-  which days you wrote.
+  journal key; entry ids are an HMAC of the day, so they don't show dates
+  (though when a page is uploaded roughly does).
 - **Each photo** sealed with its own key, kept in its entry.
 - **Signing in**: a token derived from the journal key (HKDF).
 - **Your 6-digit PIN** brings the key back on a new phone. It's stretched
   (PBKDF2-SHA256, 600,000 rounds) into a verifier and a wrapping key; the
   server checks the verifier against an HMAC under a secret it keeps outside
   its database, releases the locked key only for the right PIN, and wipes it
-  after 10 wrong ones. See the server's README for the limits of that.
+  after 10 wrong ones. The verifier and locked key travel boxed to the
+  server's built-in X25519 key, never readable on the way.
+
+[SECURITY.md](SECURITY.md) has the full design, how to check it, an
+independent review's findings, and where the protection stops.
 
 Usernames, not emails: there's nothing else to give.
 

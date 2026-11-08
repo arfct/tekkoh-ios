@@ -60,7 +60,7 @@ struct SettingsView: View {
                     Button("Sign out of this phone", role: .destructive) { confirmSignOut = true }
                     Button("Delete journal everywhere", role: .destructive) { deleting = true }
                 } footer: {
-                    Text("Signing out removes the journal and its key from this phone; your username and PIN bring it back. Deleting removes it from the server too, for good.")
+                    Text("Signing out removes the journal from this phone; its key stays in your iCloud Keychain for your other devices. Deleting removes it from the server and every device, for good.")
                 }
                 if let message {
                     Text(message).font(.footnote).foregroundStyle(Ink.vermillion)
@@ -104,6 +104,7 @@ struct SettingsView: View {
                         do {
                             try await journal.deleteEverywhere()
                             Places.shared.forget()
+                            AppModel.signedOutHere = false
                             dismiss()
                             model.journal = nil
                         } catch {
@@ -160,6 +161,8 @@ struct ChangePIN: View {
                     Task {
                         do {
                             try await journal.changePIN(pin)
+                            AppModel.setPINBoxed(journal.handle)
+                            AppModel.current?.needsNewPIN = nil
                             dismiss()
                         } catch {
                             self.error = (error as? LocalizedError)?.errorDescription ?? "Couldn't save it."
@@ -170,6 +173,7 @@ struct ChangePIN: View {
                 }
             } else {
                 PINPad(title: "A new PIN", subtitle: "Needs a connection: the server keeps your key locked with it.", error: error) { pin in
+                    if let p = PINPolicy.problem(pin) { error = p; return }
                     error = nil
                     first = pin
                 }
