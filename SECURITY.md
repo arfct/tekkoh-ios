@@ -211,12 +211,67 @@ end-to-end encrypted service shares this. What's done about it:
   framed, and it sends no referrer.
 - **No outside code.** The one third-party script (a QR code generator,
   qrcode-generator 1.4.4, MIT) is vendored and makes no network calls.
-- **A browser can't do lasting damage on its own.** A linked browser can't
-  change the PIN or delete the journal, and the phone can revoke it.
+- **Limited sessions, for honest browsers.** A linked browser's session
+  can't change the PIN or delete the journal, and the phone can revoke it.
 
-A signed-out browser can't reach the server, but one that had been
-tampered with could have kept a copy of the key. Signing out is a
-convenience, not a defence against a compromised browser.
+**Holding the key is holding the journal.** This applies to anything
+linked: a browser or an agent. The phone's own sign-in token is
+`HKDF(K, "tekkoh/auth/v1")`, so anything holding `K` can work it out and
+then do whatever the phone can:
+- change the PIN;
+- delete the journal;
+- link something else;
+- sign itself back in after being signed out.
+
+A browser keeps `K` non-extractable, but it can still derive that token
+from it. So the session limits and signing out protect against an honest
+browser or agent that's been lost or retired, not against one that has
+been tampered with. Revoking one of those for real would mean:
+- rotating `K`, which re-seals every page and photo;
+- separating the owner's sign-in from `K`.
+
+Neither is built yet.
+
+## Agents
+
+The `tekkoh` command-line tool (tekkoh-berth's `cmd/tekkoh`) lets a
+personal agent read and write the journal, and leave a note on a day
+saying what it did for you. It's meant to run somewhere you control, such
+as a confidential VM. Its crypto is the same Go code, checked against
+the Swift vectors.
+
+**Linking** is the browser's, step for step:
+1. `tekkoh link` asks for your username and PIN, and unlocks `K` through
+   the recovery path.
+2. It prints a QR code in the terminal. The code ends `:agent`, so the
+   phone says it's linking an agent and warns what that means.
+3. The phone shows the same six digits and sends
+   `{username, key, time zone}` sealed to the code's one-time key.
+4. The tool links only if the username and key match what the PIN
+   opened.
+5. It gets a session of kind `agent`. Settings lists it beside the
+   browsers, and it can be signed out there.
+
+**What it keeps.** It keeps two files in `$TEKKOH_HOME` (default
+`~/.config/tekkoh`), mode 0600:
+- `identity.json` holds `K` as plain bytes, because outside a browser or
+  the Secure Enclave there's nothing to keep it non-extractable. It also
+  holds the session token and your time zone.
+- `cache.json` holds pages only as the sealed envelopes the server has.
+
+A confidential VM keeps all of this, and the agent's memory, from the
+machine's host. It does nothing about the agent itself, or anyone signed
+in to the VM, and they can read everything.
+
+**Agents' notes** live inside the encrypted page, as `agentNotes`. Each
+agent has one note per day, keyed by its session id, and when devices
+merge, the newer edit of each wins. The server sees them only as
+ciphertext. They don't count toward the streak. The app and the web show
+them in the margin, apart from your own words.
+
+**An agent is as trusted as your phone.** It can read every page and
+photo, and, as above, it can do anything the phone can. Link only agents
+you'd trust with everything you've written.
 
 ## How to check
 
@@ -309,6 +364,9 @@ Read this part.
     to end;
   - place names come from Apple Maps, so the coordinates of places you visit
     go to Apple (not to Tekkoh) to be named.
+- **Anything linked holds the key.** A linked browser or agent can derive
+  the phone's own sign-in from `K`. Signing it out stops an honest one,
+  not one that's been tampered with (see [Agents](#agents)).
 - **Your phone:** once you've unlocked it after a restart, its data is
   readable to anyone holding it unlocked, and to malware on it. The Face ID
   lock hides the app's pages from someone who picks up your unlocked phone;

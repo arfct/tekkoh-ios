@@ -45,20 +45,24 @@ enum Linking {
         let slot: String
         let browserKey: Curve25519.KeyAgreement.PublicKey
         let raw: Data
+        /// The `tekkoh` command-line tool, for an agent, rather than a browser.
+        var agent = false
     }
 
-    /// The QR code's text: `tekkoh-link:1:<slot>:<base64url public key>`.
+    /// The QR code's text: `tekkoh-link:1:<slot>:<base64url public key>`,
+    /// with `:agent` on the end from the command-line tool.
     static func parse(_ text: String) -> Code? {
         let parts = text.split(separator: ":").map(String.init)
-        guard parts.count == 4, parts[0] == "tekkoh-link", parts[1] == "1",
+        guard parts.count == 4 || parts.count == 5 && parts[4] == "agent", parts[0] == "tekkoh-link", parts[1] == "1",
               parts[2].range(of: "^[A-Za-z0-9_-]{16,64}$", options: .regularExpression) != nil,
               let raw = Data(base64URL: parts[3]), raw.count == 32,
               let key = try? Curve25519.KeyAgreement.PublicKey(rawRepresentation: raw) else { return nil }
-        return Code(slot: parts[2], browserKey: key, raw: raw)
+        return Code(slot: parts[2], browserKey: key, raw: raw, agent: parts.count == 5)
     }
 
     static func seal(handle: String, journal: SymmetricKey, to browser: Curve25519.KeyAgreement.PublicKey) throws -> Data {
-        let payload = try JSONSerialization.data(withJSONObject: ["handle": handle, "key": journal.data.base64EncodedString()])
+        // The time zone, so a linked agent's "today" is yours.
+        let payload = try JSONSerialization.data(withJSONObject: ["handle": handle, "key": journal.data.base64EncodedString(), "tz": TimeZone.current.identifier])
         let eph = Curve25519.KeyAgreement.PrivateKey()
         let shared = try eph.sharedSecretFromKeyAgreement(with: browser)
         let key = shared.hkdfDerivedSymmetricKey(using: SHA256.self, salt: eph.publicKey.rawRepresentation + browser.rawRepresentation,

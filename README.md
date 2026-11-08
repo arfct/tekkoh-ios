@@ -47,6 +47,16 @@ The ensō stays pale until today's page is written. It turns grey once the strea
 
 The app writes a small summary to the app group `group.io.singleton.tekkoh` on every save and sync: the streak and which recent days have a page, with no content. The widget rolls itself over at midnight. `Shared/` holds the code used by both the app and the widget.
 
+## Agents
+
+A personal agent can use the journal through the `tekkoh` command-line tool
+(in tekkoh-berth, `cmd/tekkoh`). It links like a browser: your username,
+your PIN, and this phone scanning a code in its terminal. It can then read
+and write, and leave a note on a day saying what it did for you. The note
+shows in the margin, in indigo, apart from your own words. Linked agents
+are listed in Settings with the browsers, and each can be signed out
+there. See SECURITY.md before linking one.
+
 ## Offline first
 
 The whole journal lives on the phone, sealed exactly as the server holds it,

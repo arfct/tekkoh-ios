@@ -134,6 +134,7 @@ struct API {
     struct Browser: Identifiable {
         let id: String
         let label: String
+        var agent = false
         let created: Date?
         let lastUsed: Date?
     }
@@ -144,7 +145,8 @@ struct API {
         f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         func date(_ v: Any?) -> Date? { (v as? String).flatMap { f.date(from: $0) ?? ISO8601DateFormatter().date(from: $0) } }
         return (o["sessions"] as? [[String: Any]] ?? []).map {
-            Browser(id: $0["id"] as? String ?? "", label: $0["label"] as? String ?? "A browser", created: date($0["createdAt"]), lastUsed: date($0["lastUsed"]))
+            Browser(id: $0["id"] as? String ?? "", label: $0["label"] as? String ?? "A browser", agent: $0["kind"] as? String == "agent",
+                    created: date($0["createdAt"]), lastUsed: date($0["lastUsed"]))
         }
     }
 

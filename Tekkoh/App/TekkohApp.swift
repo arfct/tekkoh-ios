@@ -146,6 +146,11 @@ final class AppModel {
 struct RootView: View {
     @Environment(AppModel.self) private var model
     @Environment(\.scenePhase) private var phase
+    /// Opening the journal: blank paper, the brush draws the ensō, and the
+    /// page shows through. At launch and on every return from the background.
+    @State private var opening = true
+    @State private var openings = 0
+    @State private var wasAway = false
 
     var body: some View {
         @Bindable var model = model
@@ -162,11 +167,45 @@ struct RootView: View {
         }
         .animation(.smooth(duration: 0.35), value: model.journal == nil)
         .animation(.smooth(duration: 0.25), value: model.locked)
-        // The app switcher's snapshot shows paper, not a page.
+        .overlay {
+            if opening && model.journal != nil && !model.locked {
+                ZStack {
+                    PageBackground()
+                    Enso(size: 140, draws: true).id(openings)
+                }
+                .contentShape(.rect)
+                .onTapGesture { withAnimation(.easeOut(duration: 0.3)) { opening = false } }
+                .transition(.opacity)
+                .task(id: openings) {
+                    try? await Task.sleep(for: .milliseconds(1900))
+                    withAnimation(.easeInOut(duration: 0.5)) { opening = false }
+                }
+            }
+        }
+        // The app switcher's snapshot shows blank paper, not a page, and
+        // the brush starts from it when you come back.
         .overlay {
             if phase != .active && model.journal != nil {
-                ZStack { PageBackground(); Enso(size: 120) }.transition(.opacity)
+                PageBackground().transition(.opacity)
             }
+        }
+        .onChange(of: phase) { _, p in
+            switch p {
+            case .background:
+                wasAway = true
+            case .active where wasAway:
+                wasAway = false
+                // With the Face ID lock on, the lock screen draws it instead.
+                if !model.locked {
+                    openings += 1
+                    opening = true
+                }
+            default:
+                break
+            }
+        }
+        .onChange(of: model.locked, initial: true) { _, locked in
+            if locked { opening = false }
         }
         .sheet(item: $model.needsNewPIN) { reason in
             if let j = model.journal { NewPINPrompt(journal: j, reason: reason) }

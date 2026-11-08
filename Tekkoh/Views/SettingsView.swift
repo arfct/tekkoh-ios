@@ -54,11 +54,11 @@ struct SettingsView: View {
 
                 Section {
                     LinkedBrowsers(journal: journal).id(linking)
-                    Button("Link a browser") { linking = true }
+                    Button("Link a browser or agent") { linking = true }
                 } header: {
-                    Text("Browsers")
+                    Text("Browsers and agents")
                 } footer: {
-                    Text("Read and write your journal at tekkoh-web.cronbon.com. A linked browser needs your username, your PIN and this phone, and can't change your PIN or delete the journal.")
+                    Text("Read and write your journal at tekkoh-web.cronbon.com, or let a personal agent use it with the tekkoh command-line tool. Linking needs your username, your PIN and this phone. Anything linked holds your journal's key; sign it out here when you no longer use it.")
                 }
 
                 Section("Privacy") {

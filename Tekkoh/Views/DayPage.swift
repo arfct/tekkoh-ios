@@ -125,6 +125,37 @@ struct MarginNotes: View {
     }
 }
 
+/// What agents did for you that day, in their own words: set apart from
+/// yours by a thin indigo rule, small and quiet, with the agent's name
+/// printed above like a margin label.
+struct AgentNotesView: View {
+    let notes: [AgentNote]
+
+    var body: some View {
+        if !notes.isEmpty {
+            VStack(alignment: .leading, spacing: 12) {
+                ForEach(notes) { n in
+                    HStack(alignment: .top, spacing: 10) {
+                        Rectangle().fill(Ink.indigo.opacity(0.55)).frame(width: 1.5)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(n.agent.uppercased())
+                                .font(.label(9)).tracking(1.2)
+                                .foregroundStyle(Ink.indigo)
+                            Text(n.text)
+                                .font(.serif(13).italic())
+                                .foregroundStyle(Ink.muted)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .textSelection(.enabled)
+                        }
+                    }
+                    .accessibilityElement(children: .combine)
+                    .accessibilityLabel("\(n.agent) noted: \(n.text)")
+                }
+            }
+        }
+    }
+}
+
 /// Miles or kilometres, to a tenth, as the phone's region measures.
 enum Distance {
     static func text(_ meters: Double) -> String {

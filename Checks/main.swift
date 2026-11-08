@@ -49,6 +49,21 @@ check(Entry.merge(Entry(day: "x"), l).text == l.text, "empty side takes the othe
 let mm = Entry.merge(m, l)
 check(mm.text == m.text, "merging again doesn't repeat text")
 
+// Agents' notes: as the command-line tool writes them, and merged by agent.
+let cliJSON = #"{"agentNotes":[{"agent":"Morning agent","id":"s1","text":"Booked the dentist.","updated":815817800.5}],"created":815817713.7,"day":"2026-11-08","photos":[],"places":[],"removedPhotos":[],"text":"Rain.","updated":815817800.5,"version":3}"#
+let fromCLI = try? JSONDecoder.tekkoh.decode(Entry.self, from: Data(cliJSON.utf8))
+check(fromCLI?.notes.first?.text == "Booked the dentist." && fromCLI?.text == "Rain.", "reads a page with an agent's note, as the CLI writes it")
+let oldJSON = #"{"created":815817713.7,"day":"2026-11-08","photos":[],"places":[],"removedPhotos":[],"text":"Rain.","updated":815817800.5}"#
+check((try? JSONDecoder.tekkoh.decode(Entry.self, from: Data(oldJSON.utf8)))?.agentNotes == nil, "still reads a page from before agents")
+var na = Entry(day: "2026-11-08"), nb = na
+na.agentNotes = [AgentNote(id: "s1", agent: "A", text: "old", updated: Date(timeIntervalSinceReferenceDate: 1)), AgentNote(id: "s2", agent: "B", text: "b", updated: Date(timeIntervalSinceReferenceDate: 1))]
+nb.agentNotes = [AgentNote(id: "s1", agent: "A", text: "new", updated: Date(timeIntervalSinceReferenceDate: 2))]
+let nm = Entry.merge(na, nb)
+check(nm.notes.map(\.text) == ["new", "b"], "agents' notes merge one per agent, the newer edit winning")
+check(Linking.parse("tekkoh-link:1:abcdefghijklmnopqrstuv:ja_P7q6QRe6aeNeKmfzzLneB5EHrBzCWw0K44tzDthI:agent")?.agent == true, "an agent's link code parses as an agent")
+check(Linking.parse("tekkoh-link:1:abcdefghijklmnopqrstuv:ja_P7q6QRe6aeNeKmfzzLneB5EHrBzCWw0K44tzDthI")?.agent == false, "a browser's as a browser")
+check(Linking.parse("tekkoh-link:1:abcdefghijklmnopqrstuv:ja_P7q6QRe6aeNeKmfzzLneB5EHrBzCWw0K44tzDthI:robot") == nil, "and nothing else")
+
 // The repeat bug: this phone's own earlier version must not be concatenated.
 let v1 = Entry(day: "2026-11-07", text: "Walked along the river to the old mill")
 var v2 = v1; v2.text = "Walked along the river to the old harbour"

@@ -215,6 +215,9 @@ struct SinglePage: View {
                     .padding(.top, 12)
                 PhotoShelf(journal: journal, day: day, layout: .strip)
                     .padding(.top, 8)
+                AgentNotesView(notes: journal.entry(day).notes)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 16)
                     .padding(.bottom, 40)
             }
         }
@@ -233,6 +236,7 @@ struct MarginPage: View {
         VStack(alignment: .leading, spacing: 16) {
             DayHeader(journal: journal, day: day, large: true)
             MarginNotes(entry: journal.entry(day), live: live, day: day, showMap: true)
+            AgentNotesView(notes: journal.entry(day).notes)
             PhotoShelf(journal: journal, day: day, layout: .grid)
         }
         .padding(.horizontal, 28)

@@ -16,6 +16,10 @@ struct Entry: Codable, Equatable, Identifiable {
     /// Counts up with every save, inside the encryption, so a server can't
     /// hand back an older version of a page as if it were current.
     var version: Int?
+    /// What linked agents did for you that day, in their own words: kept
+    /// beside the page, apart from yours. Optional so pages written before
+    /// agents existed still read.
+    var agentNotes: [AgentNote]?
 
     var id: String { day }
     var v: Int { version ?? 0 }
@@ -93,8 +97,32 @@ struct Entry: Codable, Equatable, Identifiable {
         out.created = min(remote.created, local.created)
         out.updated = max(remote.updated, local.updated, .now)
         out.version = max(remote.v, local.v) + 1
+        // One note per agent: the newer edit of each wins.
+        var notes: [String: AgentNote] = [:]
+        var noteOrder: [String] = []
+        for n in (remote.agentNotes ?? []) + (local.agentNotes ?? []) {
+            if let cur = notes[n.id] {
+                if n.updated > cur.updated { notes[n.id] = n }
+            } else {
+                notes[n.id] = n
+                noteOrder.append(n.id)
+            }
+        }
+        out.agentNotes = noteOrder.isEmpty ? nil : noteOrder.compactMap { notes[$0] }
         return out
     }
+
+    /// Agents' notes with something in them.
+    var notes: [AgentNote] { (agentNotes ?? []).filter { !$0.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty } }
+}
+
+/// An agent's note on a day, written with the `tekkoh` command-line tool.
+/// One per agent per day, keyed by the agent's session id.
+struct AgentNote: Codable, Equatable, Identifiable, Hashable {
+    var id: String
+    var agent: String
+    var text: String
+    var updated: Date
 }
 
 struct Photo: Codable, Equatable, Identifiable, Hashable {

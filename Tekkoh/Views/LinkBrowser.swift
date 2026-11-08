@@ -21,7 +21,7 @@ struct LinkBrowser: View {
                     VStack(spacing: 18) {
                         Enso(size: 90, draws: true)
                         Text("Linked").font(.serif(26)).foregroundStyle(Ink.text)
-                        Text("The browser is opening your journal.").font(.serif(16)).foregroundStyle(Ink.muted)
+                        Text(found?.agent == true ? "The agent can open your journal now." : "The browser is opening your journal.").font(.serif(16)).foregroundStyle(Ink.muted)
                         Button("Done") { dismiss() }.font(.serif(17)).padding(.top, 8)
                     }
                     .padding(30)
@@ -31,7 +31,7 @@ struct LinkBrowser: View {
                     scanner
                 }
             }
-            .navigationTitle("Link a browser")
+            .navigationTitle("Link a browser or agent")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } } }
             .sensoryFeedback(.success, trigger: done)
@@ -44,11 +44,11 @@ struct LinkBrowser: View {
             VStack(spacing: 18) {
                 QRScanner { text in
                     guard found == nil else { return }
-                    if let c = Linking.parse(text) { found = c } else { error = "That isn't a Tekkoh link code." }
+                    if let c = Linking.parse(text) { found = c; error = nil } else { error = "That isn't a Tekkoh link code." }
                 }
                 .clipShape(.rect(cornerRadius: 12))
                 .frame(maxHeight: 420)
-                Text(error ?? "Open tekkoh-web.cronbon.com, enter your username and PIN, and point the camera at the code it shows.")
+                Text(error ?? "Open tekkoh-web.cronbon.com, or run `tekkoh link` on an agent's machine, enter your username and PIN, and point the camera at the code it shows.")
                     .font(.serif(15))
                     .foregroundStyle(error == nil ? Ink.muted : Ink.vermillion)
                     .multilineTextAlignment(.center)
@@ -63,14 +63,16 @@ struct LinkBrowser: View {
     private func confirm(_ code: Linking.Code) -> some View {
         let digits = Linking.code(code.raw)
         return VStack(alignment: .leading, spacing: 18) {
-            Text("Link this browser?").font(.serif(26)).foregroundStyle(Ink.text)
-            Text("Check the browser shows the same six digits:").font(.serif(16)).foregroundStyle(Ink.muted)
+            Text(code.agent ? "Link this agent?" : "Link this browser?").font(.serif(26)).foregroundStyle(Ink.text)
+            Text(code.agent ? "Check the terminal shows the same six digits:" : "Check the browser shows the same six digits:").font(.serif(16)).foregroundStyle(Ink.muted)
             Text("\(digits.prefix(3)) \(digits.suffix(3))")
                 .font(.system(size: 40, weight: .semibold, design: .monospaced))
                 .foregroundStyle(Ink.text)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 10)
-            Text("It will be able to read and write \(journal.handle)'s journal until you sign it out here. It can't change your PIN or delete the journal.")
+            Text(code.agent
+                 ? "It will hold the key to \(journal.handle)'s journal: it can read every page and photo, write, and leave notes on what it did for you, until you sign it out here. Only link an agent you trust with everything you've written."
+                 : "It will be able to read and write \(journal.handle)'s journal until you sign it out here. It can't change your PIN or delete the journal.")
                 .font(.serif(14)).foregroundStyle(Ink.muted)
                 .fixedSize(horizontal: false, vertical: true)
             if let error { Text(error).font(.label(11)).foregroundStyle(Ink.vermillion) }
@@ -143,10 +145,14 @@ struct LinkedBrowsers: View {
             if !loaded {
                 ProgressView()
             } else if browsers.isEmpty {
-                Text("No browsers linked.").foregroundStyle(Ink.muted)
+                Text("Nothing linked.").foregroundStyle(Ink.muted)
             }
             ForEach(browsers) { b in
                 HStack {
+                    Image(systemName: b.agent ? "terminal" : "globe")
+                        .font(.system(size: 13))
+                        .foregroundStyle(Ink.muted)
+                        .frame(width: 18)
                     VStack(alignment: .leading, spacing: 2) {
                         Text(b.label)
                         if let u = b.lastUsed {
