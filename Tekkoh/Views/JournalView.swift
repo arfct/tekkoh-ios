@@ -70,15 +70,13 @@ struct JournalView: View {
             Button { go(-1) } label: { Label("Previous day", systemImage: "chevron.left") }
             Button { go(1) } label: { Label("Next day", systemImage: "chevron.right") }
                 .disabled(day >= Day.today)
+            if day != Day.today {
+                // Back to today, from an earlier page.
+                Button { withAnimation(.smooth) { day = Day.today } } label: { Label("Go to today", systemImage: "forward.end") }
+            }
         }
         ToolbarItem(placement: .principal) {
-            if day != Day.today {
-                Button { withAnimation(.smooth) { day = Day.today } } label: {
-                    Text("TODAY").font(.label(11)).tracking(2)
-                }
-            } else {
-                SyncMark(journal: journal)
-            }
+            SyncMark(journal: journal)
         }
         ToolbarItemGroup(placement: .topBarTrailing) {
             if writing {
