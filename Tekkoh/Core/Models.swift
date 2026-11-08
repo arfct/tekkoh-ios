@@ -23,6 +23,30 @@ struct Entry: Codable, Equatable, Identifiable {
 
     static let divider = "\n\n· · ·\n\n"
 
+    /// Undoes the repeats an early build made by concatenating a page with
+    /// its own earlier versions: when every part starts the same way, they
+    /// were one page, and the longest part is kept. Two devices' genuinely
+    /// different words are left alone.
+    static func collapsingRepeats(_ text: String) -> String? {
+        let parts = text.components(separatedBy: divider.trimmingCharacters(in: .newlines)).map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
+        guard parts.count > 1 else { return nil }
+        let head = String(parts[0].prefix(24))
+        guard head.count >= 12, parts.allSatisfy({ $0.hasPrefix(head) }) else { return nil }
+        return parts.max { $0.count < $1.count }
+    }
+
+    /// Two versions of a day, given the last version both sides had
+    /// (`base`). Only when both changed the words since then are they put
+    /// one after the other; if just one side changed, that side's words
+    /// stand. Photos and places are combined either way.
+    static func merge(_ remote: Entry, _ local: Entry, base: Entry?) -> Entry {
+        var m = merge(remote, local)
+        if let base {
+            if remote.text == base.text { m.text = local.text } else if local.text == base.text { m.text = remote.text }
+        }
+        return m
+    }
+
     /// Two versions of the same day from different devices. The words are
     /// put one after the other rather than merged; photos and places are
     /// combined; the newer activity reading wins.

@@ -49,6 +49,17 @@ check(Entry.merge(Entry(day: "x"), l).text == l.text, "empty side takes the othe
 let mm = Entry.merge(m, l)
 check(mm.text == m.text, "merging again doesn't repeat text")
 
+// The repeat bug: this phone's own earlier version must not be concatenated.
+let v1 = Entry(day: "2026-11-07", text: "Walked along the river to the old mill")
+var v2 = v1; v2.text = "Walked along the river to the old harbour"
+check(Entry.merge(v1, v2, base: v1).text == v2.text, "only this phone changed since the last sync: its words stand")
+check(Entry.merge(v2, v1, base: v1).text == v2.text, "only the other side changed: theirs stand")
+var other = v1; other.text = "A different device's page."
+check(Entry.merge(other, v2, base: v1).text == other.text + Entry.divider + v2.text, "both changed since: concatenated")
+let repeated = v1.text + Entry.divider + v2.text + Entry.divider + v2.text + " Then dinner."
+check(Entry.collapsingRepeats(repeated) == v2.text + " Then dinner.", "repeats from the bug collapse to the fullest version")
+check(Entry.collapsingRepeats(m.text) == nil, "two devices' different words are left alone")
+
 // Streaks.
 let days: Set<String> = ["2026-11-03", "2026-11-04", "2026-11-05", "2026-11-06", "2026-10-01", "2026-10-02"]
 check(Streak.current(days, today: "2026-11-07") == 4, "streak counts back from yesterday when today's blank")

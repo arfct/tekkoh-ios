@@ -63,6 +63,17 @@ final class Journal {
 
     private var stateURL: URL { dir.appending(path: "state.json") }
     private func entryURL(_ id: String) -> URL { dir.appending(path: "entries/\(id).tek") }
+    /// The last version this phone and the server agreed on, for merging.
+    private func baseURL(_ id: String) -> URL { dir.appending(path: "entries/\(id).base") }
+
+    private func base(_ id: String) -> Entry? {
+        guard let d = try? Data(contentsOf: baseURL(id)), let plain = try? Crypto.openEntry(d, id: id, journal: key) else { return nil }
+        return try? JSONDecoder.tekkoh.decode(Entry.self, from: plain)
+    }
+
+    private func setBase(_ id: String, _ sealed: Data) {
+        try? sealed.write(to: baseURL(id), options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
+    }
     private func photoURL(_ id: String) -> URL { dir.appending(path: "photos/\(id).tek") }
 
     private func load() {
@@ -72,6 +83,22 @@ final class Journal {
                   let plain = try? Crypto.openEntry(sealed, id: id, journal: key),
                   let e = try? JSONDecoder.tekkoh.decode(Entry.self, from: plain) else { continue }
             entries[rec.day] = e
+        }
+        repairRepeats()
+    }
+
+    /// Once: collapse pages an early build repeated by merging them with
+    /// their own earlier versions.
+    private func repairRepeats() {
+        let flag = "repairedRepeats.\(handle)"
+        guard !UserDefaults.standard.bool(forKey: flag) else { return }
+        UserDefaults.standard.set(true, forKey: flag)
+        for e in entries.values {
+            if let fixed = Entry.collapsingRepeats(e.text) {
+                var n = e
+                n.text = fixed
+                save(n)
+            }
         }
     }
 
@@ -270,14 +297,18 @@ final class Journal {
             }
             return
         }
+        // This phone's own upload coming back, or older: nothing new.
+        if let local, r.rev <= local.rev { return }
         guard let data = r.data, let plain = try? Crypto.openEntry(data, id: r.id, journal: key),
               let remote = try? JSONDecoder.tekkoh.decode(Entry.self, from: plain) else { return }
         if let local, local.dirty, let mine = entries[local.day] {
-            let merged = Entry.merge(remote, mine)
+            let merged = Entry.merge(remote, mine, base: base(r.id))
             entries[remote.day] = merged
             _ = try? write(merged)
+            setBase(r.id, data)
             state.records[r.id] = Record(day: remote.day, rev: r.rev, dirty: merged != remote)
         } else {
+            setBase(r.id, data)
             entries[remote.day] = remote
             try? data.write(to: entryURL(r.id), options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
             state.records[r.id] = Record(day: remote.day, rev: r.rev, dirty: false)
@@ -292,6 +323,7 @@ final class Journal {
             do {
                 let res = try await api.put(entry: id, data: sealed, rev: rec.rev)
                 state.records[id]?.rev = res.rev
+                setBase(id, sealed)
                 // Still dirty if it changed again while uploading.
                 if let now = try? Data(contentsOf: entryURL(id)), now == sealed { state.records[id]?.dirty = false }
                 saveState()

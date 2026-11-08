@@ -105,9 +105,7 @@ struct MarginNotes: View {
                     if let st = h.steps, st > 0 {
                         Label("\(st.formatted()) steps", systemImage: "shoeprints.fill")
                     }
-                    if let m = h.meters, m > 100 {
-                        Text(Measurement(value: m, unit: UnitLength.meters).formatted(.measurement(width: .abbreviated, usage: .road, numberFormatStyle: .number.precision(.fractionLength(1)))))
-                    }
+                    if let m = h.meters, m > 100 { Text(Distance.text(m)) }
                     if let f = h.flights, f > 0 { Text("\(f) fl") }
                 }
             }
@@ -117,13 +115,22 @@ struct MarginNotes: View {
             if let h = health, !h.workouts.isEmpty {
                 HStack(spacing: 12) {
                     ForEach(Array(h.workouts.prefix(3).enumerated()), id: \.offset) { _, w in
-                        Text("\(w.kind) \(Int(w.minutes.rounded())) min" + (w.meters.map { $0 > 100 ? String(format: " · %.1f km", $0 / 1000) : "" } ?? ""))
+                        Text("\(w.kind) \(Int(w.minutes.rounded())) min" + (w.meters.map { $0 > 100 ? " · " + Distance.text($0) : "" } ?? ""))
                     }
                 }
                 .font(.label(10))
                 .foregroundStyle(Ink.vermillion.opacity(0.85))
             }
         }
+    }
+}
+
+/// Miles or kilometres, to a tenth, as the phone's region measures.
+enum Distance {
+    static func text(_ meters: Double) -> String {
+        let unit: UnitLength = Locale.current.measurementSystem == .us ? .miles : .kilometers
+        return Measurement(value: meters, unit: UnitLength.meters).converted(to: unit)
+            .formatted(.measurement(width: .abbreviated, usage: .asProvided, numberFormatStyle: .number.precision(.fractionLength(1))))
     }
 }
 
@@ -138,7 +145,7 @@ struct DayMap: View {
     let places: [Place]
 
     var body: some View {
-        Map(initialPosition: .automatic, interactionModes: [.pan, .zoom]) {
+        Map(initialPosition: .region(region), interactionModes: [.pan, .zoom]) {
             if places.count > 1 {
                 MapPolyline(coordinates: places.map { CLLocationCoordinate2D(latitude: $0.lat, longitude: $0.lon) })
                     .stroke(Ink.vermillion.opacity(0.6), style: StrokeStyle(lineWidth: 2, dash: [4, 4]))
@@ -152,8 +159,20 @@ struct DayMap: View {
             }
         }
         .mapStyle(.standard(elevation: .flat, emphasis: .muted, pointsOfInterest: .excludingAll))
+        .environment(\.colorScheme, .light)
         .mapControlVisibility(.hidden)
         .id(places.map(\.id).joined())
+    }
+
+    /// Every place in view with room around it, and never closer than a
+    /// neighbourhood: one place alone shouldn't fill the map with rooftops.
+    private var region: MKCoordinateRegion {
+        let lats = places.map(\.lat), lons = places.map(\.lon)
+        let center = CLLocationCoordinate2D(latitude: ((lats.min() ?? 0) + (lats.max() ?? 0)) / 2,
+                                            longitude: ((lons.min() ?? 0) + (lons.max() ?? 0)) / 2)
+        let span = MKCoordinateSpan(latitudeDelta: max(((lats.max() ?? 0) - (lats.min() ?? 0)) * 1.6, 0.018),
+                                    longitudeDelta: max(((lons.max() ?? 0) - (lons.min() ?? 0)) * 1.6, 0.018))
+        return MKCoordinateRegion(center: center, span: span)
     }
 }
 
