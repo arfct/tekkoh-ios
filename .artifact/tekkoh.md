@@ -20,9 +20,7 @@ media:
   - src: margin.png
     caption: The margin of one page, with the day's places, movement and photos
     alt: A phone-sized journal page with the date, a 24-day streak stamp, a map of Kyoto, three visited places with times, step count and two photo prints
-credits:
-  - name: David Singleton
-    url: https://github.com/dps
+credits: [dps]
 unconfirmed:
   - date
 ---
