@@ -280,7 +280,7 @@ struct NewPINPrompt: View {
                     Text("Choose a new PIN").font(.serif(26)).foregroundStyle(Ink.text)
                     Text(reason == .wiped
                          ? "Someone made ten wrong guesses at your PIN, so the server has destroyed your recovery copy, as it's meant to. Your journal is safe and open on this phone, but a new phone couldn't get it back until you choose a new PIN."
-                         : "An earlier version of Tekkoh sent your PIN's recovery information in a form the server's operator, or a network in between, could have used to guess your PIN. Choose a new one: it travels sealed now.")
+                         : "An earlier version of Tekkoh sent your PIN's recovery information in a form the server's operator, or a network in between, could have used to guess your PIN. Choose a new one: it travels encrypted now.")
                         .font(.serif(16)).foregroundStyle(Ink.muted)
                         .fixedSize(horizontal: false, vertical: true)
                     Button { choosing = true } label: {

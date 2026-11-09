@@ -36,7 +36,7 @@ phone when you start a journal.
 
 Each day's page is one JSON document: words, photos with their keys and
 captions, places, activity, sun, and a **version** that counts up with every
-save. It's sealed with its **own random 256-bit key** `E`:
+save. It's encrypted with its **own random 256-bit key** `E`:
 
 ```
 k = AES-256-GCM(K, E,    aad: "tekkoh/entry-key/" + id)
@@ -44,7 +44,7 @@ c = AES-256-GCM(E, JSON, aad: "tekkoh/entry/" + id)
 envelope = {"v": 1, "k": k, "c": c}
 ```
 
-Every seal uses a fresh random 96-bit nonce. The associated data binds an
+Every encryption uses a fresh random 96-bit nonce. The associated data binds an
 envelope to its id, and on download the phone checks that the id matches
 the day inside, so a server can't move a page to another date or swap two.
 
@@ -56,7 +56,7 @@ and puts the page back.
 ### Photos
 
 Each photo is re-encoded as JPEG (at most 2048 px), which drops EXIF and GPS
-data, then sealed with its **own random key** `P`:
+data, then encrypted with its **own random key** `P`:
 `AES-256-GCM(P, jpeg, aad: "tekkoh/photo/" + photoID)`. `P` is kept only
 inside the encrypted entry, so a photo can be read only by someone who can
 read its page. Photo ids are random.
@@ -64,7 +64,7 @@ read its page. Photo ids are random.
 ### On the phone
 
 The whole journal lives on the phone so it works offline. It's stored as the
-same envelopes and sealed photos the server holds, so nothing is written in
+same envelopes and encrypted photos the server holds, so nothing is written in
 the clear. Thumbnails exist only in memory. The sync state file holds ids
 and revision numbers, not dates.
 
@@ -167,7 +167,7 @@ token from its logs: every logged request shows `"Authorization":["REDACTED"]`.
 journal in a browser. Its code is in arfct/tekkoh's `web/`. It uses the
 same pages, crypto, merge rules and sync, through WebCrypto. The journal
 key is held as non-extractable `CryptoKey`s, so even the page's own script
-can use it but not read it out. Pages and photos are stored sealed in
+can use it but not read it out. Pages and photos are stored encrypted in
 IndexedDB, so the journal reads and writes offline.
 
 **Linking a browser** needs your username, your PIN and your phone, and
@@ -180,8 +180,8 @@ all three must be the same journal's:
    server, and shows a QR code holding the slot and the public key, plus
    six digits.
 3. In Settings, Link a browser, your phone scans the code and shows the
-   same six digits. It then puts `{username, key}` in the slot, sealed to
-   the browser's public key, so the server only ever holds the sealed box.
+   same six digits. It then puts `{username, key}` in the slot, encrypted to
+   the browser's public key, so the server only ever holds the encrypted box.
 4. The browser opens the box and links only if:
    - the username matches;
    - the key from the phone is byte-for-byte the key the PIN unlocked.
@@ -227,7 +227,7 @@ A browser keeps `K` non-extractable, but it can still derive that token
 from it. So the session limits and signing out protect against an honest
 browser or agent that's been lost or retired, not against one that has
 been tampered with. Revoking one of those for real would mean:
-- rotating `K`, which re-seals every page and photo;
+- rotating `K`, which re-encrypts every page and photo;
 - separating the owner's sign-in from `K`.
 
 Neither is built yet.
@@ -255,7 +255,7 @@ already holds `K`, is what approves:
 3. The app shows the name the agent gave itself and the six digits
    derived from its key, and warns what linking an agent means. It asks
    for Face ID or the passcode, whatever the app lock is set to.
-4. It sends `{username, key, time zone}` sealed to the one-time key, as
+4. It sends `{username, key, time zone}` encrypted to the one-time key, as
    after a scan. The server records which journal filled the slot.
 5. `tekkoh link --wait` collects it. It links only if the username in the
    box is the one the server says filled the slot, and the key signs in
@@ -276,7 +276,7 @@ into) is the browser's, step for step:
 2. It prints a QR code in the terminal. The code ends `:agent`, so the
    phone says it's linking an agent and warns what that means.
 3. The phone shows the same six digits and sends
-   `{username, key, time zone}` sealed to the code's one-time key.
+   `{username, key, time zone}` encrypted to the code's one-time key.
 4. The tool links only if the username and key match what the PIN
    opened.
 5. It gets a session of kind `agent`, as above.
@@ -288,7 +288,7 @@ into) is the browser's, step for step:
 - `identity.json` holds `K` as plain bytes, because outside a browser or
   the Secure Enclave there's nothing to keep it non-extractable. It also
   holds the session token and your time zone.
-- `cache.json` holds pages only as the sealed envelopes the server has.
+- `cache.json` holds pages only as the encrypted envelopes the server has.
 
 A confidential VM keeps all of this, and the agent's memory, from the
 machine's host. It does nothing about the agent itself, or anyone signed
@@ -338,9 +338,9 @@ All of these run from the repos, against the live server.
   - a made-up `X-Forwarded-For` can't dodge the rate limit.
 - **The web app's tests** (in arfct/tekkoh, run with Node 22):
   - `web/tests/vectors.mjs` checks the browser crypto against vectors the
-    app's Swift code made: the sign-in token, entry ids, sealed pages and
+    app's Swift code made: the sign-in token, entry ids, encrypted pages and
     photos, PIN stretching and unlocking, the linking box and the
-    six-digit code. Then the Swift opens a page the browser sealed.
+    six-digit code. Then the Swift opens a page the browser encrypted.
   - `web/tests/live.mjs` links a browser to a throwaway journal on the live
     server, playing the phone's part. It checks that:
     - a wrong PIN is refused;
