@@ -20,10 +20,11 @@ media:
   - src: margin.png
     caption: The margin of one page, with the day's places, movement and photos
     alt: A phone-sized journal page with the date, a 24-day streak stamp, a map of Kyoto, three visited places with times, step count and two photo prints
-role: Design, Engineering
+credits:
+  - name: David Singleton
+    url: https://github.com/dps
 unconfirmed:
   - date
-  - role
 ---
 
 One page for each day. Tekkoh is a journal after the Hobonichi Techo: cream grid paper, a 12 pt grid for the words, and a margin where the day writes its own notes: the places you went, steps and workouts from Apple Health, sunrise and sunset, photos from that day's camera roll.
