@@ -24,11 +24,16 @@ struct PhotoShelf: View {
             case .strip:
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(alignment: .top, spacing: 14) {
-                        ForEach(photos) { p in card(p).frame(width: 168) }
+                        // Each print over the next, so its remove button,
+                        // which sits off its corner, isn't under its tilted
+                        // neighbour.
+                        ForEach(Array(photos.enumerated()), id: \.element.id) { i, p in
+                            card(p).frame(width: 168).zIndex(Double(photos.count - i))
+                        }
                         addTile.frame(width: 110, height: 150)
                     }
                     .padding(.horizontal, 20)
-                    .padding(.vertical, 6)
+                    .padding(.vertical, 10)
                 }
             case .grid:
                 LazyVGrid(columns: [GridItem(.flexible(), spacing: 16), GridItem(.flexible(), spacing: 16)], spacing: 16) {

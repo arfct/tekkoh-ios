@@ -155,7 +155,7 @@ struct YearGrid: View {
     let open: (String) -> Void
 
     var body: some View {
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: 140, maximum: 220), spacing: 22)], alignment: .leading, spacing: 26) {
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 140, maximum: 220), spacing: 22, alignment: .top)], alignment: .leading, spacing: 26) {
             ForEach(1...12, id: \.self) { m in
                 let month = String(format: "%@-%02d", year, m)
                 Button { open(month) } label: { MiniMonth(month: month, written: written, selected: selected) }
