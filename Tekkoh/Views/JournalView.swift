@@ -18,6 +18,7 @@ struct JournalView: View {
     @State private var canFocus = false
     @Environment(\.scenePhase) private var phase
     @Environment(\.horizontalSizeClass) private var hSize
+    @Environment(AppModel.self) private var model
 
     var body: some View {
         NavigationStack {
@@ -44,6 +45,8 @@ struct JournalView: View {
                     .presentationDetents([.large])
             }
             .sheet(isPresented: $showSettings) { SettingsView(journal: journal) }
+            // An agent's link arrived: make way for it.
+            .onChange(of: model.closeSheets) { showSettings = false; showIndex = false }
             .task(id: day) {
                 live = DayContext.Live()
                 live = await DayContext.gather(day)

@@ -1,6 +1,11 @@
 import BackgroundTasks
 import LocalAuthentication
+import os
 import SwiftUI
+
+enum Log {
+    static let link = Logger(subsystem: "io.singleton.tekkoh", category: "link")
+}
 
 @main
 struct TekkohApp: App {
@@ -50,6 +55,20 @@ final class AppModel {
     var needsNewPIN: PINReason?
     /// An agent's link, tapped: waits for the journal to be open, then asks.
     var incomingLink: Linking.Code?
+    /// Bumped when a link arrives, so whatever sheets are open (Settings,
+    /// the scanner in it, the month index) close and it can be shown.
+    var closeSheets = 0
+
+    /// A link from outside. A sheet can't be shown over another, so the open
+    /// ones close first, and the link is asked about once they have.
+    func receive(_ code: Linking.Code) {
+        closeSheets += 1
+        incomingLink = nil
+        Task {
+            try? await Task.sleep(for: .milliseconds(650))
+            incomingLink = code
+        }
+    }
 
     enum PINReason: Identifiable {
         case wiped, exposed
@@ -212,7 +231,9 @@ struct RootView: View {
             }
         }
         .onOpenURL { url in
-            if let code = Linking.parse(url: url) { model.incomingLink = code }
+            let code = Linking.parse(url: url)
+            Log.link.info("opened a link (\(url.scheme ?? "?", privacy: .public)): \(code == nil ? "not one of ours" : "an agent's", privacy: .public)")
+            if let code { model.receive(code) }
         }
         .onChange(of: model.locked, initial: true) { _, locked in
             if locked { opening = false }
