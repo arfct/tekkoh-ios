@@ -10,7 +10,7 @@ links:
   source: https://github.com/arfct/tekkoh-ios
 media:
   - src: landing.png
-    caption: The landing page, with the Duo spread beside the promise of one page a day
+    caption: The landing page, with the Duo spread beside the heading "One page for each day"
     alt: A cream grid-paper web page headed "One page for each day", beside a foldable phone showing a journal spread with a map and a column of writing
   - src: duo-spread.png
     caption: A day on the iPhone Duo's inside display, margin left and writing right, the fold on the spine
@@ -23,10 +23,10 @@ unconfirmed:
   - date
 ---
 
-One page for each day. Tekkoh is a journal after the Hobonichi Techo: cream grid paper, a 12 pt grid for the words, and a margin where the day writes its own notes: the places you went, steps and workouts from Apple Health, sunrise and sunset, photos from that day's camera roll.
+Tekkoh is a daily journal for iPhone, modelled on the Hobonichi Techo: one page for each day, on cream grid paper with a 12 pt grid. A margin on each page fills in with the places visited that day, steps and workouts from Apple Health, sunrise and sunset, and photos from that day's camera roll.
 
-It is built for iPhone Duo, where the inside display opens as a two-page spread with the fold on the spine. The streak is a vermillion hanko stamp on today's page; a widget carries it to the Home Screen, Lock Screen and StandBy as a kanji date and an ensō that stays pale until the day is written.
+It is built for iPhone Duo, where the inside display opens as a two-page spread with the fold on the spine. A vermillion hanko stamp on today's page shows the streak. A widget shows the date as kanji and an ensō on the Home Screen, Lock Screen and StandBy; the ensō stays pale until the day's page is written.
 
-Everything is encrypted on the phone with a key only you hold. The server keeps a copy it can't read, and a six-digit PIN brings the key back on a new phone. The journal reads and writes offline and syncs when the network returns. A web version and a command-line tool for personal agents share the same server. The app is not yet on the App Store.
+Entries are encrypted on the phone with a key held only by the user. The server stores a copy it cannot decrypt, and a six-digit PIN restores the key on a new phone. The journal reads and writes offline and syncs when the network returns. A web version and a command-line tool for personal agents use the same server. The app is not yet on the App Store.
 
 Swift, SwiftUI, WidgetKit; Go server (arfct/tekkoh). 2026.
