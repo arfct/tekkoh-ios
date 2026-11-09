@@ -8,7 +8,7 @@ import Foundation
 ///
 /// k = HKDF-SHA256(X25519(eph, server), salt: eph ‖ server, info: "tekkoh/transport/v1/" + purpose);
 /// the request is AES-256-GCM(k, JSON, aad: purpose), a reply the same with
-/// aad purpose + "/reply". The server's half is in tekkoh-berth's transport.go.
+/// aad purpose + "/reply". The server's half is in arfct/tekkoh's transport.go.
 enum Transport {
     /// GET /v1/transport-key on tekkoh.cronbon.com, built in so a server
     /// (or anything pretending to be one) can't swap it.

@@ -3,7 +3,7 @@
 Tekkoh is a journal, so the bar is simple: nobody but you should be able to
 read it, including whoever runs the server. This document says exactly how
 that's done, how to check it, and where it stops. It covers this app and its
-server, [tekkoh-berth](https://github.com/dps/tekkoh-berth).
+server, [arfct/tekkoh](https://github.com/arfct/tekkoh).
 
 ## What we claim
 
@@ -164,7 +164,7 @@ token from its logs: every logged request shows `"Authorization":["REDACTED"]`.
 ## The web app
 
 [tekkoh-web.cronbon.com](https://tekkoh-web.cronbon.com) is the same
-journal in a browser. Its code is in tekkoh-berth's `web/`. It uses the
+journal in a browser. Its code is in arfct/tekkoh's `web/`. It uses the
 same pages, crypto, merge rules and sync, through WebCrypto. The journal
 key is held as non-extractable `CryptoKey`s, so even the page's own script
 can use it but not read it out. Pages and photos are stored sealed in
@@ -234,7 +234,7 @@ Neither is built yet.
 
 ## Agents
 
-The `tekkoh` command-line tool (tekkoh-berth's `cmd/tekkoh`) lets a
+The `tekkoh` command-line tool (arfct/tekkoh's `cmd/tekkoh`) lets a
 personal agent read and write the journal, and leave a note on a day
 saying what it did for you. It's meant to run somewhere you control, such
 as a confidential VM. Its crypto is the same Go code, checked against
@@ -324,7 +324,7 @@ All of these run from the repos, against the live server.
      for the marker as text, as hex, and as base64 in all three alignments.
 
   Last run: not found in a 188-line dump or in 17,621 lines of logs.
-- **The server's tests** (`go test ./...` in tekkoh-berth; set
+- **The server's tests** (`go test ./...` in arfct/tekkoh; set
   `TEKKOH_TEST_DATABASE_URL` to run them against Postgres too) check:
   - recovery material never appears in a request body;
   - boxes can't be tampered with or reused for another purpose;
@@ -336,7 +336,7 @@ All of these run from the repos, against the live server.
     changes;
   - revisions;
   - a made-up `X-Forwarded-For` can't dodge the rate limit.
-- **The web app's tests** (in tekkoh-berth, run with Node 22):
+- **The web app's tests** (in arfct/tekkoh, run with Node 22):
   - `web/tests/vectors.mjs` checks the browser crypto against vectors the
     app's Swift code made: the sign-in token, entry ids, sealed pages and
     photos, PIN stretching and unlocking, the linking box and the
