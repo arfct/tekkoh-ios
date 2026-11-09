@@ -63,7 +63,7 @@ there. See SECURITY.md before linking one.
 
 ## Offline first
 
-The whole journal lives on the phone, sealed exactly as the server holds it,
+The whole journal lives on the phone, encrypted exactly as the server holds it,
 so it reads and writes on a plane. Changes queue and sync when the network
 returns (an `NWPathMonitor` and background refresh). If two devices change
 the same day, their words are put one after the other with a divider rather
@@ -74,10 +74,10 @@ than merged; photos and places are combined; a removed photo stays removed.
 - A random 256-bit **journal key** in the Keychain, synced by iCloud
   Keychain to your own devices, readable after first unlock so places can
   be recorded in the background.
-- **Each entry** sealed with its own AES-GCM key, itself sealed with the
+- **Each entry** encrypted with its own AES-GCM key, itself encrypted with the
   journal key; entry ids are an HMAC of the day, so they don't show dates
   (though when a page is uploaded roughly does).
-- **Each photo** sealed with its own key, kept in its entry.
+- **Each photo** encrypted with its own key, kept in its entry.
 - **Signing in**: a token derived from the journal key (HKDF).
 - **Your 6-digit PIN** brings the key back on a new phone. It's stretched
   (PBKDF2-SHA256, 600,000 rounds) into a verifier and a wrapping key; the
