@@ -6,7 +6,6 @@ tags:
   - ios
   - widget
   - security
-  - open-source
 url: https://tekkoh.com
 links:
   source: https://github.com/arfct/tekkoh-ios
