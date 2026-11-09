@@ -45,7 +45,7 @@ The fold comes from SwiftUI's `reservedRegions(kind: .division)`.
 
 The ensō stays pale until today's page is written. It turns grey once the streak has ended.
 
-The app writes a small summary to the app group `group.io.singleton.tekkoh` on every save and sync: the streak and which recent days have a page, with no content. The widget rolls itself over at midnight. `Shared/` holds the code used by both the app and the widget.
+The app writes a small summary to the app group `group.com.artifact.tekkoh` on every save and sync: the streak and which recent days have a page, with no content. The widget rolls itself over at midnight. `Shared/` holds the code used by both the app and the widget.
 
 ## Agents
 

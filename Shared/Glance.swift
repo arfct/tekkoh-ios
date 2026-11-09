@@ -13,7 +13,7 @@ struct Glance: Codable, Equatable {
     /// Days with a page among the last fourteen.
     var recent: [String]
 
-    static let group = "group.io.singleton.tekkoh"
+    static let group = "group.com.artifact.tekkoh"
     private static let key = "glance"
 
     /// The streak as it stands on `today`: the run, if it reaches today or

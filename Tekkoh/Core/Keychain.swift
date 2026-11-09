@@ -7,7 +7,7 @@ import Security
 /// Apple), and is readable after the first unlock so location visits can be
 /// recorded in the background.
 enum Keychain {
-    private static let service = "io.singleton.tekkoh"
+    private static let service = "com.artifact.tekkoh"
 
     struct Identity: Codable, Equatable {
         var handle: String
