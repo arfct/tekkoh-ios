@@ -65,8 +65,9 @@ final class AppModel {
         closeSheets += 1
         incomingLink = nil
         Task {
-            try? await Task.sleep(for: .milliseconds(650))
+            try? await Task.sleep(for: .milliseconds(400))
             incomingLink = code
+            Log.link.notice("an agent's link is waiting\(self.locked ? " for the lock" : "", privacy: .public)")
         }
     }
 
@@ -173,6 +174,12 @@ struct RootView: View {
     @State private var openings = 0
     @State private var wasAway = false
 
+    private func opened(_ url: URL, how: String) {
+        let code = Linking.parse(url: url)
+        Log.link.notice("opened a link by \(how, privacy: .public) (\(url.scheme ?? "?", privacy: .public), fragment \(url.fragment == nil ? "missing" : "present", privacy: .public)): \(code == nil ? "not one of ours" : "an agent's", privacy: .public)")
+        if let code { model.receive(code) }
+    }
+
     var body: some View {
         @Bindable var model = model
         Group {
@@ -186,11 +193,21 @@ struct RootView: View {
                 Onboarding()
             }
         }
-        // An agent's link: shown once the journal is open, past the lock.
-        .sheet(item: Binding(get: { model.locked || model.journal == nil ? nil : model.incomingLink },
-                             set: { model.incomingLink = $0 })) { code in
-            if let j = model.journal { LinkBrowser(journal: j, found: code) }
+        // An agent's link: once the journal is open, past the lock, drawn
+        // over it here rather than as a sheet. A sheet asked for while Face
+        // ID is still closing and the lock gives way to the journal is
+        // quietly never shown.
+        .overlay {
+            if let code = model.incomingLink, let j = model.journal, !model.locked {
+                LinkBrowser(journal: j, found: code) {
+                    withAnimation(.smooth(duration: 0.3)) { model.incomingLink = nil }
+                }
+                .id(code.id)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .onAppear { Log.link.notice("asking about an agent's link") }
+            }
         }
+        .animation(.smooth(duration: 0.35), value: model.incomingLink?.id)
         .animation(.smooth(duration: 0.35), value: model.journal == nil)
         .animation(.smooth(duration: 0.25), value: model.locked)
         .overlay {
@@ -230,10 +247,11 @@ struct RootView: View {
                 break
             }
         }
-        .onOpenURL { url in
-            let code = Linking.parse(url: url)
-            Log.link.info("opened a link (\(url.scheme ?? "?", privacy: .public)): \(code == nil ? "not one of ours" : "an agent's", privacy: .public)")
-            if let code { model.receive(code) }
+        // tekkoh://link#…, and (usually) a Universal Link.
+        .onOpenURL { opened($0, how: "url") }
+        // A Universal Link, as iOS hands it over from Camera or Messages.
+        .onContinueUserActivity(NSUserActivityTypeBrowsingWeb) { activity in
+            if let url = activity.webpageURL { opened(url, how: "activity") }
         }
         .onChange(of: model.locked, initial: true) { _, locked in
             if locked { opening = false }

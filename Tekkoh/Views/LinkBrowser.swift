@@ -14,12 +14,17 @@ struct LinkBrowser: View {
     @Environment(\.dismiss) private var dismiss
     @State private var found: Linking.Code?
     private let fromLink: Bool
+    /// Shown over the journal rather than as a sheet: how to put it away.
+    private let onClose: (() -> Void)?
 
-    init(journal: Journal, found: Linking.Code? = nil) {
+    init(journal: Journal, found: Linking.Code? = nil, onClose: (() -> Void)? = nil) {
         self.journal = journal
         _found = State(initialValue: found)
         fromLink = found != nil
+        self.onClose = onClose
     }
+
+    private func close() { if let onClose { onClose() } else { dismiss() } }
     @State private var sending = false
     @State private var done = false
     @State private var error: String?
@@ -33,7 +38,7 @@ struct LinkBrowser: View {
                         Enso(size: 90, draws: true)
                         Text("Linked").font(.serif(26)).foregroundStyle(Ink.text)
                         Text(found?.agent == true ? "The agent can open your journal now." : "The browser is opening your journal.").font(.serif(16)).foregroundStyle(Ink.muted)
-                        Button("Done") { dismiss() }.font(.serif(17)).padding(.top, 8)
+                        Button("Done") { close() }.font(.serif(17)).padding(.top, 8)
                     }
                     .padding(30)
                 } else if let code = found {
@@ -44,7 +49,7 @@ struct LinkBrowser: View {
             }
             .navigationTitle("Link a browser or agent")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } } }
+            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { close() } } }
             .sensoryFeedback(.success, trigger: done)
             .sensoryFeedback(.selection, trigger: found?.slot)
         }
@@ -103,7 +108,7 @@ struct LinkBrowser: View {
             .tint(Ink.vermillion)
             .disabled(sending)
             if fromLink {
-                Button("Don't link") { dismiss() }
+                Button("Don't link") { close() }
                     .font(.serif(15)).frame(maxWidth: .infinity)
             } else {
                 Button("They're different") { found = nil; error = "Scan again, from the right page." }
