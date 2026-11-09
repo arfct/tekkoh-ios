@@ -4,7 +4,7 @@ import os
 import SwiftUI
 
 enum Log {
-    static let link = Logger(subsystem: "io.singleton.tekkoh", category: "link")
+    static let link = Logger(subsystem: "com.artifact.tekkoh", category: "link")
 }
 
 @main
@@ -42,7 +42,7 @@ struct TekkohApp: App {
 
 @MainActor @Observable
 final class AppModel {
-    static let refreshTask = "io.singleton.tekkoh.refresh"
+    static let refreshTask = "com.artifact.tekkoh.refresh"
 
     /// The app's one model, so background work uses the same journal
     /// rather than a second copy writing the same files.

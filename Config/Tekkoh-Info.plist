@@ -6,7 +6,7 @@
 	<array>
 		<dict>
 			<key>CFBundleURLName</key>
-			<string>io.singleton.tekkoh.link</string>
+			<string>com.artifact.tekkoh.link</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>tekkoh</string>
@@ -19,7 +19,7 @@
 	</array>
 	<key>BGTaskSchedulerPermittedIdentifiers</key>
 	<array>
-		<string>io.singleton.tekkoh.refresh</string>
+		<string>com.artifact.tekkoh.refresh</string>
 	</array>
 </dict>
 </plist>
