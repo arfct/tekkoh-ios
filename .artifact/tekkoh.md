@@ -5,7 +5,6 @@ category: product
 tags:
   - ios
   - widget
-  - security
 url: https://tekkoh.com
 links:
   source: https://github.com/arfct/tekkoh-ios
