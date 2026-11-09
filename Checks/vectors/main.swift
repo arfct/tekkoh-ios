@@ -1,7 +1,7 @@
 import CryptoKit
 import Foundation
 
-// Cross-checks with the web app (tekkoh-berth/web/tests/vectors.mjs).
+// Cross-checks with the web app (web/tests/vectors.mjs in arfct/tekkoh).
 // `vectors make <file>`: writes values the Swift code produces from fixed
 // keys, for the JavaScript to reproduce or open.
 // `vectors check <file>`: opens what the JavaScript sealed.

@@ -6,7 +6,7 @@ keep by writing every day. Built for iPhone and for iPhone Duo, where the
 inside display opens it as a two-page spread.
 
 Everything is encrypted on the phone with a key only you hold. The server
-([tekkoh-berth](https://github.com/dps/tekkoh-berth)) keeps a copy it can't
+([arfct/tekkoh](https://github.com/arfct/tekkoh)) keeps a copy it can't
 read: a backup, and the way between your devices.
 
 ## What's on a page
@@ -50,7 +50,7 @@ The app writes a small summary to the app group `group.io.singleton.tekkoh` on e
 ## Agents
 
 A personal agent can use the journal through the `tekkoh` command-line tool
-(in tekkoh-berth, `cmd/tekkoh`). The agent sends you a one-time link
+(in arfct/tekkoh, `cmd/tekkoh`). The agent sends you a one-time link
 (`https://tekkoh.com/link#…`), which opens Tekkoh to approve it with
 Face ID: no PIN is typed anywhere. (In a terminal, `tekkoh link --pin`
 links as a browser does instead: username, PIN, and a code to scan.)
@@ -88,7 +88,7 @@ than merged; photos and places are combined; a removed photo stays removed.
 
 The same journal is on the web at
 [tekkoh-web.cronbon.com](https://tekkoh-web.cronbon.com) (code in
-tekkoh-berth's `web/`), linked from the phone in Settings, Link a browser.
+arfct/tekkoh's `web/`), linked from the phone in Settings, Link a browser.
 
 [SECURITY.md](SECURITY.md) has the full design, how to check it, an
 independent review's findings, and where the protection stops.
@@ -106,3 +106,7 @@ xcodebuild -project Tekkoh.xcodeproj -scheme Tekkoh -destination 'id=<device>' -
 `Checks/run.sh` checks the crypto, merging, streaks and sun times on the
 Mac, and the account, recovery and sync cycle against the live server with
 a throwaway account.
+
+## License
+
+MIT; see [LICENSE](LICENSE).
