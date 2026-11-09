@@ -109,6 +109,10 @@ xcodebuild -project Tekkoh.xcodeproj -scheme Tekkoh -destination 'id=<device>' -
 Mac, and the account, recovery and sync cycle against the live server with
 a throwaway account.
 
+## Catalogue
+
+This project's catalogue entry is in [`.artifact/tekkoh.md`](.artifact/tekkoh.md).
+
 ## License
 
 MIT; see [LICENSE](LICENSE).
