@@ -1,3 +1,4 @@
+import LocalAuthentication
 import SwiftUI
 import VisionKit
 
@@ -5,10 +6,20 @@ import VisionKit
 /// digits match, and send it the journal key sealed to the one-time key in
 /// the code. The browser also has your username and PIN, and links only if
 /// they open the same key.
+///
+/// Or an agent's link, tapped: it arrives here already found, and the phone
+/// is all that approves it, so it asks for Face ID (or the passcode) first.
 struct LinkBrowser: View {
     let journal: Journal
     @Environment(\.dismiss) private var dismiss
     @State private var found: Linking.Code?
+    private let fromLink: Bool
+
+    init(journal: Journal, found: Linking.Code? = nil) {
+        self.journal = journal
+        _found = State(initialValue: found)
+        fromLink = found != nil
+    }
     @State private var sending = false
     @State private var done = false
     @State private var error: String?
@@ -48,7 +59,7 @@ struct LinkBrowser: View {
                 }
                 .clipShape(.rect(cornerRadius: 12))
                 .frame(maxHeight: 420)
-                Text(error ?? "Open tekkoh-web.cronbon.com, or run `tekkoh link` on an agent's machine, enter your username and PIN, and point the camera at the code it shows.")
+                Text(error ?? "Open tekkoh-web.cronbon.com and enter your username and PIN, or open the link an agent sent you, and point the camera at the code it shows.")
                     .font(.serif(15))
                     .foregroundStyle(error == nil ? Ink.muted : Ink.vermillion)
                     .multilineTextAlignment(.center)
@@ -63,15 +74,20 @@ struct LinkBrowser: View {
     private func confirm(_ code: Linking.Code) -> some View {
         let digits = Linking.code(code.raw)
         return VStack(alignment: .leading, spacing: 18) {
-            Text(code.agent ? "Link this agent?" : "Link this browser?").font(.serif(26)).foregroundStyle(Ink.text)
-            Text(code.agent ? "Check the terminal shows the same six digits:" : "Check the browser shows the same six digits:").font(.serif(16)).foregroundStyle(Ink.muted)
+            Text(code.name.map { "Link \u{201C}\($0)\u{201D}?" } ?? (code.agent ? "Link this agent?" : "Link this browser?"))
+                .font(.serif(26)).foregroundStyle(Ink.text)
+                .fixedSize(horizontal: false, vertical: true)
+            Text(fromLink ? "An agent sent you this link. Its message should show the same six digits:"
+                 : code.agent ? "Check the terminal shows the same six digits:" : "Check the browser shows the same six digits:")
+                .font(.serif(16)).foregroundStyle(Ink.muted)
+                .fixedSize(horizontal: false, vertical: true)
             Text("\(digits.prefix(3)) \(digits.suffix(3))")
                 .font(.system(size: 40, weight: .semibold, design: .monospaced))
                 .foregroundStyle(Ink.text)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 10)
             Text(code.agent
-                 ? "It will hold the key to \(journal.handle)'s journal: it can read every page and photo, write, and leave notes on what it did for you, until you sign it out here. Only link an agent you trust with everything you've written."
+                 ? "It will hold the key to \(journal.handle)'s journal: it can read every page and photo, write, and leave notes on what it did for you, until you sign it out here. Only link an agent you trust with everything you've written\(fromLink ? ", and only if you asked it to link just now" : "")."
                  : "It will be able to read and write \(journal.handle)'s journal until you sign it out here. It can't change your PIN or delete the journal.")
                 .font(.serif(14)).foregroundStyle(Ink.muted)
                 .fixedSize(horizontal: false, vertical: true)
@@ -86,8 +102,13 @@ struct LinkBrowser: View {
             .buttonStyle(.borderedProminent)
             .tint(Ink.vermillion)
             .disabled(sending)
-            Button("They're different") { found = nil; error = "Scan again, from the right page." }
-                .font(.serif(15)).frame(maxWidth: .infinity)
+            if fromLink {
+                Button("Don't link") { dismiss() }
+                    .font(.serif(15)).frame(maxWidth: .infinity)
+            } else {
+                Button("They're different") { found = nil; error = "Scan again, from the right page." }
+                    .font(.serif(15)).frame(maxWidth: .infinity)
+            }
         }
         .padding(28)
     }
@@ -95,16 +116,28 @@ struct LinkBrowser: View {
     private func send(_ code: Linking.Code) async {
         sending = true
         defer { sending = false }
+        // Handing over the key is the most this phone can give away: it
+        // asks for its owner first, whatever the app lock is set to.
+        guard await ownerPresent(code) else { return }
         do {
             let box = try Linking.seal(handle: journal.handle, journal: journal.key, to: code.browserKey)
             try await API(identity: journal.identity).link(slot: code.slot, box: box)
             done = true
         } catch let API.Failure.status(code, msg, _) {
-            error = code == 404 ? "That code has expired. Show a new one in the browser." : msg
+            error = code == 404 ? (fromLink ? "That link has expired. Ask the agent for a new one." : "That code has expired. Show a new one in the browser.") : msg
         } catch {
             self.error = "Couldn't reach Tekkoh. Try again when you're online."
         }
     }
+}
+
+private func ownerPresent(_ code: Linking.Code) async -> Bool {
+    let ctx = LAContext()
+    var err: NSError?
+    // A phone with no passcode at all can't be asked; it links as before.
+    guard ctx.canEvaluatePolicy(.deviceOwnerAuthentication, error: &err) else { return true }
+    let what = code.name.map { "Link \u{201C}\($0)\u{201D} to your journal" } ?? (code.agent ? "Link an agent to your journal" : "Link a browser to your journal")
+    return (try? await ctx.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: what)) ?? false
 }
 
 /// VisionKit's live QR scanner.

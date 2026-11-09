@@ -48,6 +48,8 @@ final class AppModel {
     /// Set when the server no longer holds a usable PIN recovery: asks for
     /// a new PIN.
     var needsNewPIN: PINReason?
+    /// An agent's link, tapped: waits for the journal to be open, then asks.
+    var incomingLink: Linking.Code?
 
     enum PINReason: Identifiable {
         case wiped, exposed
@@ -165,6 +167,11 @@ struct RootView: View {
                 Onboarding()
             }
         }
+        // An agent's link: shown once the journal is open, past the lock.
+        .sheet(item: Binding(get: { model.locked || model.journal == nil ? nil : model.incomingLink },
+                             set: { model.incomingLink = $0 })) { code in
+            if let j = model.journal { LinkBrowser(journal: j, found: code) }
+        }
         .animation(.smooth(duration: 0.35), value: model.journal == nil)
         .animation(.smooth(duration: 0.25), value: model.locked)
         .overlay {
@@ -203,6 +210,9 @@ struct RootView: View {
             default:
                 break
             }
+        }
+        .onOpenURL { url in
+            if let code = Linking.parse(url: url) { model.incomingLink = code }
         }
         .onChange(of: model.locked, initial: true) { _, locked in
             if locked { opening = false }

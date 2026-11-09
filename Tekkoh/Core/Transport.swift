@@ -41,23 +41,46 @@ enum Transport {
 /// one-time public key followed by AES-GCM, with the same key derivation as
 /// a transport box (purpose "pair"); web/js/crypto.js opens it.
 enum Linking {
-    struct Code {
+    struct Code: Identifiable {
         let slot: String
         let browserKey: Curve25519.KeyAgreement.PublicKey
         let raw: Data
         /// The `tekkoh` command-line tool, for an agent, rather than a browser.
         var agent = false
+        /// From a link an agent sent: the name it gave itself. Its own say-so,
+        /// shown so you know which agent is asking.
+        var name: String?
+        var id: String { slot }
     }
 
     /// The QR code's text: `tekkoh-link:1:<slot>:<base64url public key>`,
-    /// with `:agent` on the end from the command-line tool.
+    /// with `:agent` on the end from the command-line tool. Or the link an
+    /// agent sends, which the app opens and the camera can scan.
     static func parse(_ text: String) -> Code? {
+        if text.hasPrefix("https://") || text.hasPrefix("tekkoh://"), let url = URL(string: text) { return parse(url: url) }
         let parts = text.split(separator: ":").map(String.init)
         guard parts.count == 4 || parts.count == 5 && parts[4] == "agent", parts[0] == "tekkoh-link", parts[1] == "1",
               parts[2].range(of: "^[A-Za-z0-9_-]{16,64}$", options: .regularExpression) != nil,
               let raw = Data(base64URL: parts[3]), raw.count == 32,
               let key = try? Curve25519.KeyAgreement.PublicKey(rawRepresentation: raw) else { return nil }
         return Code(slot: parts[2], browserKey: key, raw: raw, agent: parts.count == 5)
+    }
+
+    /// An agent's link: `https://tekkoh.com/link#s=<slot>&k=<key>&n=<name>`,
+    /// or the same after `tekkoh://link`. Everything is after the #, so the
+    /// page's server never sees it.
+    static func parse(url: URL) -> Code? {
+        let web = url.scheme == "https" && url.host == "tekkoh.com" && url.path == "/link"
+        let app = url.scheme == "tekkoh" && url.host == "link"
+        guard web || app, let frag = URLComponents(url: url, resolvingAgainstBaseURL: false)?.percentEncodedFragment else { return nil }
+        var q = URLComponents()
+        q.percentEncodedQuery = frag
+        let items = Dictionary((q.queryItems ?? []).map { ($0.name, $0.value ?? "") }, uniquingKeysWith: { a, _ in a })
+        guard let slot = items["s"], let key = items["k"], var code = parse("tekkoh-link:1:\(slot):\(key):agent") else { return nil }
+        let name = String((items["n"] ?? "").unicodeScalars.filter { !CharacterSet.controlCharacters.contains($0) })
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        code.name = name.isEmpty ? nil : String(name.prefix(60))
+        return code
     }
 
     static func seal(handle: String, journal: SymmetricKey, to browser: Curve25519.KeyAgreement.PublicKey) throws -> Data {

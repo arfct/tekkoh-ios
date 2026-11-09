@@ -240,20 +240,51 @@ saying what it did for you. It's meant to run somewhere you control, such
 as a confidential VM. Its crypto is the same Go code, checked against
 the Swift vectors.
 
-**Linking** is the browser's, step for step:
-1. `tekkoh link` asks for your username and PIN, and unlocks `K` through
-   the recovery path.
+**Linking by link** is the usual way, since an agent in a chat has no
+terminal you can type into. No PIN is typed anywhere; the phone, which
+already holds `K`, is what approves:
+1. `tekkoh link` makes a one-time X25519 key and opens a pairing slot
+   that lasts 15 minutes (a browser's lasts 5). It prints a link,
+   `https://tekkoh.com/link#s=<slot>&k=<public key>&n=<name>`, for the
+   agent to send you, and keeps the private key in `pending.json`.
+   Everything is after the `#`, so tekkoh.com's server never sees it.
+2. On an iPhone, the link is a Universal Link and opens Tekkoh (or the
+   page offers `tekkoh://link#…`). On a computer, the page shows the
+   link as a QR code for the phone's camera. The page reads the link
+   locally and sends nothing.
+3. The app shows the name the agent gave itself and the six digits
+   derived from its key, and warns what linking an agent means. It asks
+   for Face ID or the passcode, whatever the app lock is set to.
+4. It sends `{username, key, time zone}` sealed to the one-time key, as
+   after a scan. The server records which journal filled the slot.
+5. `tekkoh link --wait` collects it. It links only if the username in the
+   box is the one the server says filled the slot, and the key signs in
+   to that journal. It gets a session of kind `agent`, which Settings
+   lists beside the browsers and can sign out.
+
+The risk to know about is a link you didn't ask for. Anyone can send you
+one, and if you approve it, they hold your journal. The name in it is the
+sender's own say-so, and the six digits only prove the link wasn't
+changed between the agent and you. That's why the app says to approve only
+an agent you asked to link just now, and why it asks for Face ID. A QR
+code has always had the same risk; a link only makes it easier to send.
+
+**Linking with the PIN** (`tekkoh link --pin`, for a terminal you type
+into) is the browser's, step for step:
+1. It asks for your username and PIN, and unlocks `K` through the
+   recovery path.
 2. It prints a QR code in the terminal. The code ends `:agent`, so the
    phone says it's linking an agent and warns what that means.
 3. The phone shows the same six digits and sends
    `{username, key, time zone}` sealed to the code's one-time key.
 4. The tool links only if the username and key match what the PIN
    opened.
-5. It gets a session of kind `agent`. Settings lists it beside the
-   browsers, and it can be signed out there.
+5. It gets a session of kind `agent`, as above.
 
-**What it keeps.** It keeps two files in `$TEKKOH_HOME` (default
+**What it keeps.** It keeps these files in `$TEKKOH_HOME` (default
 `~/.config/tekkoh`), mode 0600:
+- `pending.json`, only while a link waits: the one-time private key. It
+  is deleted once the link is collected or has expired.
 - `identity.json` holds `K` as plain bytes, because outside a browser or
   the Secure Enclave there's nothing to keep it non-extractable. It also
   holds the session token and your time zone.

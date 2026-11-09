@@ -63,6 +63,12 @@ check(nm.notes.map(\.text) == ["new", "b"], "agents' notes merge one per agent, 
 check(Linking.parse("tekkoh-link:1:abcdefghijklmnopqrstuv:ja_P7q6QRe6aeNeKmfzzLneB5EHrBzCWw0K44tzDthI:agent")?.agent == true, "an agent's link code parses as an agent")
 check(Linking.parse("tekkoh-link:1:abcdefghijklmnopqrstuv:ja_P7q6QRe6aeNeKmfzzLneB5EHrBzCWw0K44tzDthI")?.agent == false, "a browser's as a browser")
 check(Linking.parse("tekkoh-link:1:abcdefghijklmnopqrstuv:ja_P7q6QRe6aeNeKmfzzLneB5EHrBzCWw0K44tzDthI:robot") == nil, "and nothing else")
+let agentLink = Linking.parse(url: URL(string: "https://tekkoh.com/link#k=ja_P7q6QRe6aeNeKmfzzLneB5EHrBzCWw0K44tzDthI&n=Edison%20the%20%0Aagent&s=abcdefghijklmnopqrstuv")!)
+check(agentLink?.agent == true && agentLink?.slot == "abcdefghijklmnopqrstuv" && agentLink?.name == "Edison the agent", "an agent's link opens as an agent, its name kept to one line")
+check(Linking.parse(url: URL(string: "tekkoh://link#s=abcdefghijklmnopqrstuv&k=ja_P7q6QRe6aeNeKmfzzLneB5EHrBzCWw0K44tzDthI")!)?.name == nil, "the app's own scheme too")
+check(Linking.parse("https://tekkoh.com/link#s=abcdefghijklmnopqrstuv&k=ja_P7q6QRe6aeNeKmfzzLneB5EHrBzCWw0K44tzDthI") != nil, "and the link scanned as a code")
+check(Linking.parse(url: URL(string: "https://evil.example/link#s=abcdefghijklmnopqrstuv&k=ja_P7q6QRe6aeNeKmfzzLneB5EHrBzCWw0K44tzDthI")!) == nil, "but not from anywhere else")
+check(Linking.parse(url: URL(string: "https://tekkoh.com/link#s=abc&k=short")!) == nil, "nor a broken one")
 
 // The repeat bug: this phone's own earlier version must not be concatenated.
 let v1 = Entry(day: "2026-11-07", text: "Walked along the river to the old mill")

@@ -50,8 +50,12 @@ The app writes a small summary to the app group `group.io.singleton.tekkoh` on e
 ## Agents
 
 A personal agent can use the journal through the `tekkoh` command-line tool
-(in tekkoh-berth, `cmd/tekkoh`). It links like a browser: your username,
-your PIN, and this phone scanning a code in its terminal. It can then read
+(in tekkoh-berth, `cmd/tekkoh`). The agent sends you a one-time link
+(`https://tekkoh.com/link#…`), which opens Tekkoh to approve it with
+Face ID: no PIN is typed anywhere. (In a terminal, `tekkoh link --pin`
+links as a browser does instead: username, PIN, and a code to scan.)
+The app handles the link as a Universal Link (`applinks:tekkoh.com`) and as
+`tekkoh://link#…`, both in `Linking.parse(url:)`. It can then read
 and write, and leave a note on a day saying what it did for you. The note
 shows in the margin, in indigo, apart from your own words. Linked agents
 are listed in Settings with the browsers, and each can be signed out
