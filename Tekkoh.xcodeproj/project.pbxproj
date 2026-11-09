@@ -280,6 +280,7 @@
 				INFOPLIST_KEY_NSCameraUsageDescription = "Tekkoh uses the camera only to scan the code a browser shows when you link it to your journal.";
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "Face ID keeps your journal closed to anyone else holding your phone.";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Tekkoh notes each day's steps, distance and workouts on its page. They're encrypted like everything else in your journal.";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Tekkoh only reads your steps, distance and workouts. It never writes anything to Apple Health.";
 				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "Tekkoh notes the places your day takes you on its page. “Always” lets it follow the whole day, with little battery. They're encrypted on your phone.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Tekkoh notes the places your day takes you on its page. They're encrypted on your phone.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Tekkoh suggests the photos you took each day so you can add them to its page in a tap. Photos you add are encrypted before they leave your phone.";
@@ -316,6 +317,7 @@
 				INFOPLIST_KEY_NSCameraUsageDescription = "Tekkoh uses the camera only to scan the code a browser shows when you link it to your journal.";
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "Face ID keeps your journal closed to anyone else holding your phone.";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Tekkoh notes each day's steps, distance and workouts on its page. They're encrypted like everything else in your journal.";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Tekkoh only reads your steps, distance and workouts. It never writes anything to Apple Health.";
 				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "Tekkoh notes the places your day takes you on its page. “Always” lets it follow the whole day, with little battery. They're encrypted on your phone.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Tekkoh notes the places your day takes you on its page. They're encrypted on your phone.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Tekkoh suggests the photos you took each day so you can add them to its page in a tap. Photos you add are encrypted before they leave your phone.";
