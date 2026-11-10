@@ -10,23 +10,23 @@ links:
   source: https://github.com/arfct/tekkoh-ios
 media:
   - src: landing.png
-    caption: The landing page, with the Duo spread beside the heading "One page for each day"
+    caption: The landing page at tekkoh.com, with a Duo spread beside the heading "One page for each day"
     alt: A cream grid-paper web page headed "One page for each day", beside a foldable phone showing a journal spread with a map and a column of writing
   - src: duo-spread.png
-    caption: A day on the iPhone Duo's inside display, margin left and writing right, the fold on the spine
+    caption: One day on the iPhone Duo's inside display, with the margin on the left page, the writing on the right and the fold between them
     alt: A two-page journal spread on grid paper; the left page has a large 8, a map of Kyoto with a dashed route, places, step counts and two photos, the right page a few paragraphs of writing
   - src: margin.png
-    caption: The margin of one page, with the day's places, movement and photos
+    caption: The margin of one page, with a map of the day's places, their arrival times, the step count and walking distance, and two photos
     alt: A phone-sized journal page with the date, a 24-day streak stamp, a map of Kyoto, three visited places with times, step count and two photo prints
 credits: [dps]
 unconfirmed:
   - date
 ---
 
-Tekkoh is a daily journal for iPhone, modelled on the Hobonichi Techo: one page for each day, on cream grid paper with a 12 pt grid. A margin on each page fills in with the places visited that day, steps and workouts from Apple Health, sunrise and sunset, and photos from that day's camera roll.
+Tekkoh is a daily journal for iPhone, modelled on the Hobonichi Techo. It gives each day one page of cream grid paper, with the writing set on a 12-point grid. The margin of each page lists the places visited that day, the steps, distance and workouts from Apple Health, the times of sunrise and sunset, and photos from that day's camera roll.
 
-It is built for iPhone Duo, where the inside display opens as a two-page spread with the fold on the spine. A vermillion hanko stamp on today's page shows the streak. A widget shows the date as kanji and an ensō on the Home Screen, Lock Screen and StandBy; the ensō stays pale until the day's page is written.
+On iPhone Duo the inside display shows a two-page spread, with the margin on the left, the writing on the right and the fold on the spine. A vermillion hanko stamp on today's page shows the streak of days written. A widget for the Home Screen, Lock Screen and StandBy shows the date, with the weekday in kanji, and the streak inside an ensō. The ensō is pale until today's page is written.
 
-Entries are encrypted on the phone with a key held only by the user. The server stores a copy it cannot decrypt, and a six-digit PIN restores the key on a new phone. The journal reads and writes offline and syncs when the network returns. A web version and a command-line tool for personal agents use the same server. The app is not yet on the App Store.
+Entries are encrypted on the phone with a key kept in the Keychain, and the server stores a copy it cannot decrypt. A six-digit PIN restores the key on a new phone. The journal reads and writes offline and syncs when the network returns. A web version and a command-line tool for personal agents use the same server. The app has not been released; tekkoh.com reads "Coming to the App Store".
 
-Swift, SwiftUI, WidgetKit; Go server (arfct/tekkoh). 2026.
+Swift, SwiftUI, WidgetKit, with a Go server. 2026.
