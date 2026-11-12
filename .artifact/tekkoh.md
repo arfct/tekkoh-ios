@@ -7,6 +7,7 @@ tags:
   - widget
 url: https://tekkoh.com
 links:
+  app_store: https://apps.apple.com/app/id6832421132
   source: https://github.com/arfct/tekkoh-ios
 media:
   - src: landing.png
