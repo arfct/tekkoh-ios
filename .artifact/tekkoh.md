@@ -1,6 +1,7 @@
 ---
 title: Tekkoh
 date: 2026-11
+status: released
 category: product
 tags:
   - ios
@@ -20,6 +21,7 @@ media:
     caption: The margin of one page, with the stamp of a 24-day streak, a map of the day's places and their arrival times, the step count and walking distance, and two photos
     alt: A phone-sized journal page with the date, a 24-day streak stamp, a map of Kyoto, three visited places with times, step count and two photo prints
 credits: [dps]
+unconfirmed: [status]
 ---
 
 After the Hobonichi Techo, Tekkoh gives each day one page of cream grid paper, on an iPhone. The writing is set on a 12-point grid, and the margin is filled in from the phone: the places visited that day and a map of them, the steps, distance and workouts from Apple Health, the times of sunrise and sunset, and photos from that day's camera roll.
