@@ -9,6 +9,8 @@ Everything is encrypted on the phone with a key only you hold. The server
 ([arfct/tekkoh](https://github.com/arfct/tekkoh)) keeps a copy it can't
 read: a backup, and the way between your devices.
 
+**[Get Tekkoh on the App Store](https://apps.apple.com/app/tekkoh/id6832421132)**
+
 ## What's on a page
 
 - **Words**, on a 12 pt grid, saved as you type.
